@@ -22,6 +22,9 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { generateStructuredContent } from "@/lib/geminiClient";
+import { QuizResultService } from "@/services/quizResultService";
+import { XPService } from "@/services/xpService";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface QuizQuestion {
   question: string;
@@ -48,6 +51,7 @@ export default function Quiz() {
   const location = useLocation();
   const navigate = useNavigate();
   const state = location.state as LocationState;
+  const { user, updateProfile } = useAuth();
 
   // Quiz generation states
   const [mode, setMode] = useState<QuizMode>("selection");
@@ -57,16 +61,22 @@ export default function Quiz() {
   // Quiz data
   const [quizData, setQuizData] = useState<QuizQuestion[]>([]);
   const [quizTitle, setQuizTitle] = useState("");
+  const [quizTopic, setQuizTopic] = useState("");
+  const [quizType, setQuizType] = useState<'from_chat' | 'by_topic'>('by_topic');
   
   // Quiz progress
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [score, setScore] = useState(0);
+  const [earnedXP, setEarnedXP] = useState(0);
+  const [leveledUp, setLeveledUp] = useState(false);
 
   useEffect(() => {
     if (state?.fromChat && state?.chatContext) {
       // Automatically generate quiz from chat
+      setQuizType('from_chat');
+      setQuizTopic('Your Learning');
       generateQuizFromChat(state.chatContext);
     }
   }, []);
@@ -126,6 +136,8 @@ Return ONLY valid JSON in this exact format:
     }
 
     setMode("generating");
+    setQuizType('by_topic');
+    setQuizTopic(searchTopic);
     setQuizTitle(`${searchTopic} Quiz - ${selectedDifficulty}`);
 
     try {
@@ -194,9 +206,45 @@ Return ONLY valid JSON in this exact format:
         setSelectedAnswer(null);
         setShowFeedback(false);
       } else {
-        setMode("completed");
+        completeQuizAndAwardXP();
       }
     }, 2500);
+  };
+
+  const completeQuizAndAwardXP = async () => {
+    if (!user) return;
+
+    try {
+      const correctAnswers = score / 20; // Each correct = 20 points
+      
+      const result = await QuizResultService.completeQuiz(user.id, {
+        quizType,
+        topic: quizTopic,
+        difficulty: selectedDifficulty,
+        totalQuestions: quizData.length,
+        correctAnswers,
+      });
+
+      setEarnedXP(result.xpEarned);
+      setLeveledUp(result.leveledUp);
+
+      // Update user context
+      await updateProfile({ xp: result.newXP, level: result.newLevel });
+
+      if (result.leveledUp) {
+        toast.success(`🎉 Level Up! You're now Level ${result.newLevel}!`, {
+          description: `You earned ${result.xpEarned} XP from this quiz!`,
+        });
+      } else {
+        toast.success(`+${result.xpEarned} XP earned!`, {
+          description: "Great job completing the quiz!",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to save quiz results:', error);
+    } finally {
+      setMode("completed");
+    }
   };
 
   const handleRetry = () => {
@@ -204,6 +252,8 @@ Return ONLY valid JSON in this exact format:
     setSelectedAnswer(null);
     setShowFeedback(false);
     setScore(0);
+    setEarnedXP(0);
+    setLeveledUp(false);
     setMode("selection");
     setSearchTopic("");
   };
@@ -388,6 +438,11 @@ Return ONLY valid JSON in this exact format:
                 ? "You've mastered this topic!"
                 : "Keep practicing, you're improving!"}
             </p>
+            {leveledUp && (
+              <div className="mt-4 inline-block px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full font-bold animate-bounce">
+                🎉 LEVEL UP! Now Level {user?.level}!
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-4 mb-8">
@@ -408,7 +463,12 @@ Return ONLY valid JSON in this exact format:
             </Card>
             <Card className="p-6">
               <p className="text-sm text-muted-foreground mb-1">XP Earned</p>
-              <p className="text-3xl font-bold text-success">+{score}</p>
+              <p className="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+                +{earnedXP}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {selectedDifficulty} difficulty
+              </p>
             </Card>
           </div>
 

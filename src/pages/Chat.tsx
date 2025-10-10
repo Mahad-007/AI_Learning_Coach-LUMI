@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { generateStreamWithPersonaFast } from "@/lib/geminiClient";
 import { supabase } from "@/lib/supabaseClient";
 import type { Persona } from "@/types/user";
+import { XPService } from "@/services/xpService";
 
 interface Message {
   id: string;
@@ -26,7 +27,7 @@ interface ChatHistory {
 }
 
 export default function Chat() {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -244,9 +245,27 @@ export default function Chat() {
       setMessages((prev) => [...prev, aiMessage]);
       setStreamingMessage("");
 
-      toast.success("Message sent! +5 XP", {
-        description: "Keep chatting to level up!",
-      });
+      // Award 1 XP for AI message
+      if (user) {
+        try {
+          const xpResult = await XPService.awardXP(user.id, 1);
+          
+          // Update user context
+          await updateProfile({ xp: xpResult.new_xp, level: xpResult.new_level });
+
+          if (xpResult.leveled_up) {
+            toast.success(`🎉 Level Up! You're now Level ${xpResult.new_level}!`, {
+              description: `Keep learning to reach Level ${xpResult.new_level + 1}!`,
+            });
+          } else {
+            toast.success("+1 XP earned! 💬", {
+              description: "Keep chatting to level up!",
+            });
+          }
+        } catch (error) {
+          console.error('Failed to award XP:', error);
+        }
+      }
 
       // Show learning prompt after AI responds if it's the 7th message
       if (shouldShowPrompt) {

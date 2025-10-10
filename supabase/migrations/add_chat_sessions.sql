@@ -53,7 +53,18 @@ CREATE TRIGGER update_session_on_message
   WHEN (NEW.session_id IS NOT NULL)
   EXECUTE FUNCTION update_chat_session_timestamp();
 
+-- Helper function to update session title (avoids TypeScript issues)
+CREATE OR REPLACE FUNCTION update_session_title(session_id UUID, new_title TEXT)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE public.chat_sessions
+  SET title = new_title, updated_at = NOW()
+  WHERE id = session_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Grant permissions
 GRANT ALL ON public.chat_sessions TO authenticated;
 GRANT ALL ON public.chat_sessions TO service_role;
+GRANT EXECUTE ON FUNCTION update_session_title(UUID, TEXT) TO authenticated;
 

@@ -16,6 +16,8 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
+import { XPService } from "@/services/xpService";
+import { Progress } from "@/components/ui/progress";
 
 interface ChatSession {
   id: string;
@@ -110,13 +112,15 @@ export function ChatSidebar({
 
     try {
       const newTitle = editTitle.trim();
-      // @ts-expect-error - Database types not generated yet
-      const result = await supabase
-        .from("chat_sessions")
-        .update({ title: newTitle })
-        .eq("id", sessionId);
+      
+      // Update using RPC function to avoid type issues
+      // @ts-ignore
+      const { error } = await supabase.rpc('update_session_title', {
+        session_id: sessionId,
+        new_title: newTitle,
+      });
 
-      if (result.error) throw result.error;
+      if (error) throw error;
 
       setSessions((prev) =>
         prev.map((s) => (s.id === sessionId ? { ...s, title: newTitle } : s))
@@ -169,16 +173,25 @@ export function ChatSidebar({
       </Button>
 
       {/* Stats Card */}
-      <Card className="p-3 bg-gradient-to-br from-primary/10 to-purple-500/10 border-primary/20">
-        <div className="space-y-2">
+      <Card className="p-4 bg-gradient-to-br from-primary/10 to-purple-500/10 border-primary/20">
+        <div className="space-y-3">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground flex items-center gap-1">
-              <TrendingUp className="w-3.5 h-3.5" />
+              <TrendingUp className="w-4 h-4" />
               Level {userLevel || 1}
             </span>
-            <span className="font-medium">{userXP || 0} XP</span>
+            <span className="font-bold text-primary">{userXP || 0} XP</span>
           </div>
-          <div className="flex items-center gap-2 text-sm">
+          <div>
+            <Progress 
+              value={XPService.getLevelProgress(userXP || 0, userLevel || 1)} 
+              className="h-2"
+            />
+            <p className="text-xs text-muted-foreground mt-1.5">
+              {Math.ceil(XPService.getXPForNextLevel(userLevel || 1) - (userXP || 0))} XP to Level {(userLevel || 1) + 1}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-sm pt-2 border-t border-border/30">
             <Flame className="w-4 h-4 text-orange-500" />
             <span className="text-muted-foreground">{userStreak || 0} day streak</span>
           </div>

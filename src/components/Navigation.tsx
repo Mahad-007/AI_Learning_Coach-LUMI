@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Brain, Home, BookOpen, Trophy, BarChart3, Users, User, DollarSign, Sparkles, MessageSquare } from "lucide-react";
+import { Menu, X, Brain, Home, BookOpen, Trophy, BarChart3, Users, User, DollarSign, Sparkles, MessageSquare, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -18,7 +18,8 @@ const authenticatedNavLinks = [
   { name: "AI Chat", path: "/chat", icon: MessageSquare },
   { name: "Learn", path: "/learn", icon: BookOpen },
   { name: "Quizzes", path: "/quiz", icon: Brain },
-  { name: "Community", path: "/community", icon: Users },
+  { name: "Trivia Battle", path: "/trivia", icon: Zap },
+  { name: "Leaderboard", path: "/leaderboard", icon: Trophy },
 ];
 
 export const Navigation = () => {
