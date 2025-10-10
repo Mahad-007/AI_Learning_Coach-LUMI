@@ -1,0 +1,278 @@
+import { supabase } from '../lib/supabaseClient';
+import { generateWithPersona, generateStreamWithPersona } from '../lib/geminiClient';
+import type { ChatRequest, ChatResponse, ChatMessage, StreamChatRequest } from '../types/ai';
+import type { Persona } from '../types/user';
+
+/**
+ * Chat Service
+ * Handles AI-powered chat interactions using Gemini API
+ */
+
+export class ChatService {
+  /**
+   * Send a chat message and get AI response
+   */
+  static async sendMessage(userId: string, request: ChatRequest): Promise<ChatResponse> {
+    try {
+      // Get user's persona
+      const { data: user } = await supabase
+        .from('users')
+        .select('persona')
+        .eq('id', userId)
+        .single();
+
+      const persona: Persona = request.persona || user?.persona || 'friendly';
+
+      // Build context-aware prompt
+      const prompt = this.buildPrompt(request.message, request.topic, request.context);
+
+      // Generate AI response
+      const aiResponse = await generateWithPersona(prompt, persona);
+
+      // Calculate XP reward (base 5 XP per message)
+      const xpGained = 5;
+
+      // Save to chat history
+      const { data: chatData, error: chatError } = await supabase
+        .from('chat_history')
+        .insert({
+          user_id: userId,
+          message: request.message,
+          response: aiResponse,
+          topic: request.topic || null,
+          persona: persona,
+          xp_gained: xpGained,
+        })
+        .select()
+        .single();
+
+      if (chatError) throw chatError;
+
+      // Update user XP
+      await this.updateUserXP(userId, xpGained);
+
+      return {
+        reply: aiResponse,
+        timestamp: chatData.timestamp,
+        xp_gained: xpGained,
+        message_id: chatData.id,
+      };
+    } catch (error: any) {
+      console.error('Chat error:', error);
+      throw new Error(error.message || 'Failed to process chat message');
+    }
+  }
+
+  /**
+   * Send a chat message with streaming response
+   */
+  static async sendMessageStream(
+    userId: string,
+    request: StreamChatRequest
+  ): Promise<ChatResponse> {
+    try {
+      // Get user's persona
+      const { data: user } = await supabase
+        .from('users')
+        .select('persona')
+        .eq('id', userId)
+        .single();
+
+      const persona: Persona = request.persona || user?.persona || 'friendly';
+
+      // Build context-aware prompt
+      const prompt = this.buildPrompt(request.message, request.topic, request.context);
+
+      // Generate AI response with streaming
+      const aiResponse = await generateStreamWithPersona(prompt, persona, request.onChunk);
+
+      // Calculate XP reward
+      const xpGained = 5;
+
+      // Save to chat history
+      const { data: chatData, error: chatError } = await supabase
+        .from('chat_history')
+        .insert({
+          user_id: userId,
+          message: request.message,
+          response: aiResponse,
+          topic: request.topic || null,
+          persona: persona,
+          xp_gained: xpGained,
+        })
+        .select()
+        .single();
+
+      if (chatError) throw chatError;
+
+      // Update user XP
+      await this.updateUserXP(userId, xpGained);
+
+      return {
+        reply: aiResponse,
+        timestamp: chatData.timestamp,
+        xp_gained: xpGained,
+        message_id: chatData.id,
+      };
+    } catch (error: any) {
+      console.error('Chat stream error:', error);
+      throw new Error(error.message || 'Failed to process chat message');
+    }
+  }
+
+  /**
+   * Get chat history for a user
+   */
+  static async getChatHistory(
+    userId: string,
+    limit: number = 50,
+    topic?: string
+  ): Promise<ChatMessage[]> {
+    try {
+      let query = supabase
+        .from('chat_history')
+        .select('*')
+        .eq('user_id', userId)
+        .order('timestamp', { ascending: false })
+        .limit(limit);
+
+      if (topic) {
+        query = query.eq('topic', topic);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      return (data as ChatMessage[]).reverse(); // Return in chronological order
+    } catch (error: any) {
+      console.error('Get chat history error:', error);
+      throw new Error(error.message || 'Failed to fetch chat history');
+    }
+  }
+
+  /**
+   * Get chat topics for a user
+   */
+  static async getChatTopics(userId: string): Promise<string[]> {
+    try {
+      const { data, error } = await supabase
+        .from('chat_history')
+        .select('topic')
+        .eq('user_id', userId)
+        .not('topic', 'is', null);
+
+      if (error) throw error;
+
+      // Get unique topics
+      const topics = [...new Set(data.map((item: any) => item.topic).filter(Boolean))];
+      return topics;
+    } catch (error: any) {
+      console.error('Get chat topics error:', error);
+      throw new Error(error.message || 'Failed to fetch chat topics');
+    }
+  }
+
+  /**
+   * Delete chat message
+   */
+  static async deleteMessage(userId: string, messageId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('chat_history')
+        .delete()
+        .eq('id', messageId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Delete message error:', error);
+      throw new Error(error.message || 'Failed to delete message');
+    }
+  }
+
+  /**
+   * Clear all chat history for a user
+   */
+  static async clearHistory(userId: string, topic?: string): Promise<void> {
+    try {
+      let query = supabase.from('chat_history').delete().eq('user_id', userId);
+
+      if (topic) {
+        query = query.eq('topic', topic);
+      }
+
+      const { error } = await query;
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Clear history error:', error);
+      throw new Error(error.message || 'Failed to clear chat history');
+    }
+  }
+
+  /**
+   * Private helper: Build context-aware prompt
+   */
+  private static buildPrompt(
+    message: string,
+    topic?: string,
+    context?: string[]
+  ): string {
+    let prompt = '';
+
+    if (topic) {
+      prompt += `Topic: ${topic}\n\n`;
+    }
+
+    if (context && context.length > 0) {
+      prompt += `Previous context:\n${context.join('\n')}\n\n`;
+    }
+
+    prompt += `Student's question or message: ${message}\n\n`;
+    prompt += `Please provide a helpful, educational response that encourages learning and understanding.`;
+
+    return prompt;
+  }
+
+  /**
+   * Private helper: Update user XP
+   */
+  private static async updateUserXP(userId: string, xpGained: number): Promise<void> {
+    try {
+      // Get current user XP
+      const { data: user } = await supabase
+        .from('users')
+        .select('xp, level')
+        .eq('id', userId)
+        .single();
+
+      if (!user) return;
+
+      const newXP = user.xp + xpGained;
+      const newLevel = this.calculateLevel(newXP);
+
+      await supabase
+        .from('users')
+        .update({ 
+          xp: newXP,
+          level: newLevel,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId);
+    } catch (error) {
+      console.error('Failed to update user XP:', error);
+    }
+  }
+
+  /**
+   * Private helper: Calculate level from XP
+   */
+  private static calculateLevel(xp: number): number {
+    // Level formula: level = floor(sqrt(xp / 100)) + 1
+    return Math.floor(Math.sqrt(xp / 100)) + 1;
+  }
+}
+
+export default ChatService;
+
