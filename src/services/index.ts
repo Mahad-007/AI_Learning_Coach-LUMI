@@ -11,6 +11,9 @@ export { GamificationService } from './gamificationService';
 export { LeaderboardService } from './leaderboardService';
 export { DashboardService } from './dashboardService';
 export { WhiteboardService } from './whiteboardService';
+export { XPService } from './xpService';
+export { QuizResultService } from './quizResultService';
+export { TriviaService } from './triviaService';
 
 // Re-export types
 export type { SignupData, LoginData, AuthResponse, User } from '../types/user';

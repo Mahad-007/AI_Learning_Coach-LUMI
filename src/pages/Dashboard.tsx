@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, Flame, Award, BookOpen, TrendingUp, Clock, ArrowRight } from "lucide-react";
+import { Trophy, Flame, Award, BookOpen, TrendingUp, Clock, ArrowRight, Zap, MessageSquare, Brain } from "lucide-react";
 import AOS from "aos";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBackend } from "@/hooks/useBackend";
@@ -97,6 +98,54 @@ export default function Dashboard() {
             <p className="text-2xl font-bold mb-1">{stats.badges.total}</p>
             <p className="text-sm text-muted-foreground">Badges Earned</p>
           </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Link to="/chat">
+            <Card className="p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50" data-aos="fade-up">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg group-hover:scale-110 transition-transform">
+                  <MessageSquare className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg mb-1">AI Chat Coach</h3>
+                  <p className="text-sm text-muted-foreground">Get personalized help</p>
+                </div>
+              </div>
+            </Card>
+          </Link>
+
+          <Link to="/quiz">
+            <Card className="p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 hover:border-purple-500/50" data-aos="fade-up" data-aos-delay={100}>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg group-hover:scale-110 transition-transform">
+                  <Brain className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg mb-1">Take a Quiz</h3>
+                  <p className="text-sm text-muted-foreground">Test your knowledge</p>
+                </div>
+              </div>
+            </Card>
+          </Link>
+
+          <Link to="/trivia">
+            <Card className="p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 hover:border-amber-500/50 relative" data-aos="fade-up" data-aos-delay={200}>
+              <div className="absolute -top-2 -right-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                NEW
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg group-hover:scale-110 transition-transform">
+                  <Zap className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg mb-1">Trivia Battle</h3>
+                  <p className="text-sm text-muted-foreground">Compete with others</p>
+                </div>
+              </div>
+            </Card>
+          </Link>
         </div>
 
         {/* Two Column Layout */}
