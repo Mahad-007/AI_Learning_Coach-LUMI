@@ -128,6 +128,26 @@ export class WhiteboardService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    // Check if user is already a participant
+    const { data: existingParticipant, error: checkError } = await supabase
+      .from('whiteboard_participants')
+      .select('*')
+      .eq('session_id', sessionId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
+      console.error('Error checking existing participant:', checkError);
+      throw checkError;
+    }
+
+    // If user is already a participant, return the existing one
+    if (existingParticipant) {
+      console.log('User already a participant, returning existing:', existingParticipant);
+      return existingParticipant;
+    }
+
+    // Get user profile for participant data
     const { data: userProfile } = await supabase
       .from('users')
       .select('name, avatar_url')
@@ -143,16 +163,26 @@ export class WhiteboardService {
       color: this.generateRandomColor()
     };
 
+    console.log('Creating new participant:', participantData);
+
     const { data: participant, error } = await supabase
       .from('whiteboard_participants')
       .insert(participantData)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating participant:', error);
+      throw error;
+    }
 
     // Update session participant count
-    await supabase.rpc('increment_session_participants', { session_id: sessionId });
+    try {
+      await supabase.rpc('increment_session_participants', { session_id: sessionId });
+    } catch (countError) {
+      console.error('Error updating participant count:', countError);
+      // Don't throw here, participant was created successfully
+    }
 
     return participant;
   }
@@ -366,29 +396,172 @@ export class WhiteboardService {
     elements: Partial<WhiteboardElement>[];
     suggestions: string[];
   }> {
-    // This would integrate with your existing AI service
-    // For now, returning mock data
+    // Generate flowchart diagram elements
     return {
       elements: [
+        // Title
         {
           type: 'text',
           data: {
-            text: `Let's learn about ${topic}`,
-            x: 100,
-            y: 100,
-            fontSize: 24,
+            text: `${topic} Flowchart`,
+            x: 200,
+            y: 50,
+            width: 200,
+            fontSize: 18,
             fontFamily: 'Arial',
             color: '#333333',
             rotation: 0
           },
           layer: 1,
           visible: true
+        },
+        // Rectangle 1 - Start
+        {
+          type: 'drawing',
+          data: {
+            points: [100, 150, 300, 150, 300, 200, 100, 200, 100, 150],
+            strokeWidth: 3,
+            strokeColor: '#1976D2',
+            tool: 'pen'
+          },
+          layer: 2,
+          visible: true
+        },
+        {
+          type: 'text',
+          data: {
+            text: 'Start',
+            x: 180,
+            y: 170,
+            width: 50,
+            fontSize: 14,
+            fontFamily: 'Arial',
+            color: '#000000',
+            rotation: 0
+          },
+          layer: 3,
+          visible: true
+        },
+        // Diamond - Decision
+        {
+          type: 'drawing',
+          data: {
+            points: [200, 250, 250, 280, 200, 310, 150, 280, 200, 250],
+            strokeWidth: 3,
+            strokeColor: '#F57C00',
+            tool: 'pen'
+          },
+          layer: 4,
+          visible: true
+        },
+        {
+          type: 'text',
+          data: {
+            text: 'Decision',
+            x: 170,
+            y: 285,
+            width: 60,
+            fontSize: 12,
+            fontFamily: 'Arial',
+            color: '#000000',
+            rotation: 0
+          },
+          layer: 5,
+          visible: true
+        },
+        // Rectangle 2 - Process
+        {
+          type: 'drawing',
+          data: {
+            points: [100, 350, 300, 350, 300, 400, 100, 400, 100, 350],
+            strokeWidth: 3,
+            strokeColor: '#2E7D32',
+            tool: 'pen'
+          },
+          layer: 6,
+          visible: true
+        },
+        {
+          type: 'text',
+          data: {
+            text: 'Process',
+            x: 180,
+            y: 370,
+            width: 60,
+            fontSize: 14,
+            fontFamily: 'Arial',
+            color: '#000000',
+            rotation: 0
+          },
+          layer: 7,
+          visible: true
+        },
+        // Circle - End
+        {
+          type: 'drawing',
+          data: {
+            points: [200, 450, 220, 450, 220, 470, 200, 470, 200, 450],
+            strokeWidth: 3,
+            strokeColor: '#D32F2F',
+            tool: 'pen'
+          },
+          layer: 8,
+          visible: true
+        },
+        {
+          type: 'text',
+          data: {
+            text: 'End',
+            x: 205,
+            y: 455,
+            width: 30,
+            fontSize: 12,
+            fontFamily: 'Arial',
+            color: '#000000',
+            rotation: 0
+          },
+          layer: 9,
+          visible: true
+        },
+        // Arrows
+        {
+          type: 'drawing',
+          data: {
+            points: [200, 200, 200, 250],
+            strokeWidth: 2,
+            strokeColor: '#000000',
+            tool: 'pen'
+          },
+          layer: 10,
+          visible: true
+        },
+        {
+          type: 'drawing',
+          data: {
+            points: [200, 310, 200, 350],
+            strokeWidth: 2,
+            strokeColor: '#000000',
+            tool: 'pen'
+          },
+          layer: 11,
+          visible: true
+        },
+        {
+          type: 'drawing',
+          data: {
+            points: [200, 400, 200, 450],
+            strokeWidth: 2,
+            strokeColor: '#000000',
+            tool: 'pen'
+          },
+          layer: 12,
+          visible: true
         }
       ],
       suggestions: [
-        `Start with the basics of ${topic}`,
-        `Draw a diagram to explain the concept`,
-        `Ask students what they already know about ${topic}`
+        `Create a flowchart for ${topic}`,
+        `Add more decision points`,
+        `Connect processes with arrows`
       ]
     };
   }

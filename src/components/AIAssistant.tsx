@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { 
   Wand2, 
   Lightbulb, 
@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { WhiteboardService } from '@/services/whiteboardService';
 import { ChatService } from '@/services/chatService';
+import { generateStructuredContent } from '@/lib/geminiClient';
+import { useAuth } from '@/contexts/AuthContext';
 import type { WhiteboardElement } from '@/types/whiteboard';
 import { toast } from 'sonner';
 
@@ -33,6 +35,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ sessionId, topic, onAd
   const [loading, setLoading] = useState(false);
   const [userRequest, setUserRequest] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const { user } = useAuth();
 
   const teachingSuggestions = [
     `Create a mind map for ${topic}`,
@@ -50,24 +53,62 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ sessionId, topic, onAd
 
     setLoading(true);
     try {
-      // Use the existing ChatService to generate AI content
-      const response = await ChatService.sendMessage({
-        message: `Generate interactive whiteboard content for teaching "${topic}". Request: "${request}". 
-        Provide structured content that can be drawn on a whiteboard including:
-        1. Text elements with positioning
-        2. Drawing suggestions with descriptions
-        3. Shape recommendations
-        4. Teaching sequence suggestions
-        
-        Format the response as JSON with elements array containing type, data, and positioning information.`,
-        persona: 'scholar'
-      });
+      if (!user?.id) throw new Error('User not authenticated');
 
-      // Parse AI response and create whiteboard elements
-      const elements = await parseAIResponse(response.response, sessionId);
+      const json = await generateStructuredContent<{ elements: any[] }>(
+        `Generate an interactive flowchart diagram for teaching "${topic}" based on the following request: "${request}".
+        
+        Return ONLY valid JSON in this exact format:
+        {
+          "elements": [
+            {
+              "type": "drawing",
+              "data": {
+                "points": [x1, y1, x2, y2, x3, y3, ...],
+                "strokeWidth": 3,
+                "strokeColor": "#1976D2",
+                "tool": "pen"
+              }
+            },
+            {
+              "type": "text",
+              "data": {
+                "text": "Label text",
+                "x": 100,
+                "y": 100,
+                "width": 150,
+                "fontSize": 14,
+                "color": "#000000"
+              }
+            }
+          ]
+        }
+        
+        Rules for flowchart generation:
+        - Create flowchart shapes using drawing elements (rectangles, diamonds, circles)
+        - Use drawing type with points array to create shapes
+        - Add text labels for each shape using text elements
+        - Use different colors for different types of shapes (rectangles: #1976D2, diamonds: #F57C00, circles: #2E7D32)
+        - Space shapes with at least 200px between them
+        - Start at position (100, 100) and expand horizontally/vertically
+        - Use strokeWidth 3-4 for clear visibility
+        - Include arrows connecting shapes using drawing elements
+        - Keep text labels concise (max 20 characters)
+        - Return ONLY the JSON object, nothing else`,
+        'scholar'
+      );
+
+      const elements = await parseAIResponse(JSON.stringify(json), sessionId);
       onAddElements(elements);
       
       toast.success('AI content generated successfully!');
+
+      // Skip logging to avoid schema cache issues
+      // ChatService.sendMessage(user.id, {
+      //   message: `AI content generated for topic "${topic}" with request: "${request}"`,
+      //   persona: 'scholar',
+      //   topic,
+      // }).catch(() => {});
     } catch (error) {
       console.error('Error generating content:', error);
       toast.error('Failed to generate content');
@@ -78,14 +119,16 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ sessionId, topic, onAd
 
   const parseAIResponse = async (response: string, sessionId: string): Promise<WhiteboardElement[]> => {
     try {
-      // Try to extract JSON from the response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        return parsed.elements || [];
-      }
+      const cleaned = response
+        .replace(/```json\s*([\s\S]*?)\s*```/g, '$1')
+        .replace(/```[\s\S]*?```/g, '$1')
+        .replace(/^\s*\/\/.*$/gm, '')
+        .replace(/,\s*(\]|\})/g, '$1')
+        .trim();
+      const parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed.elements)) return parsed.elements as any[];
     } catch (error) {
-      console.error('Error parsing AI response:', error);
+      console.warn('Error parsing AI response:', error);
     }
 
     // Fallback: create basic text elements from the response
@@ -101,7 +144,8 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ sessionId, topic, onAd
           data: {
             text: line.trim(),
             x: 50,
-            y: 100 + (index * 30),
+            y: 100 + (index * 60), // Increased spacing from 30 to 60
+            width: 400, // Added width to prevent overflow
             fontSize: 16,
             fontFamily: 'Arial',
             color: '#333333',
@@ -137,13 +181,17 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ sessionId, topic, onAd
           AI Assistant
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl" aria-describedby="ai-dialog-description">
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <Sparkles className="h-5 w-5 mr-2 text-yellow-500" />
             AI Teaching Assistant
           </DialogTitle>
         </DialogHeader>
+        {/* Accessibility description for dialog */}
+        <DialogDescription id="ai-dialog-description" className="sr-only">
+          Generate AI-powered whiteboard content, suggestions, and diagrams for the selected topic.
+        </DialogDescription>
         
         <div className="space-y-6">
           {/* Topic Display */}
