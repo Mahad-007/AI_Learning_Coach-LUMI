@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Brain, Home, BookOpen, Trophy, BarChart3, Users, User, DollarSign, Sparkles } from "lucide-react";
+import { Menu, X, Brain, Home, BookOpen, Trophy, BarChart3, Users, User, DollarSign, Sparkles, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -16,6 +16,7 @@ const publicNavLinks = [
 const authenticatedNavLinks = [
   { name: "Dashboard", path: "/dashboard", icon: BarChart3 },
   { name: "Learn", path: "/learn", icon: BookOpen },
+  { name: "Whiteboard", path: "/whiteboard", icon: PenTool },
   { name: "Quizzes", path: "/quiz", icon: Brain },
   { name: "Community", path: "/community", icon: Users },
 ];
