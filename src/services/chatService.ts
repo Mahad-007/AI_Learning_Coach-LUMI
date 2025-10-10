@@ -12,13 +12,17 @@ export class ChatService {
   /**
    * Send a chat message and get AI response
    */
-  static async sendMessage(userId: string, request: ChatRequest): Promise<ChatResponse> {
+  static async sendMessage(userId: string | { id?: string }, request: ChatRequest): Promise<ChatResponse> {
     try {
+      // Normalize user id
+      const normalizedUserId = typeof userId === 'string' ? userId : (userId?.id || String(userId));
+      if (!normalizedUserId) throw new Error('Missing user id');
+
       // Get user's persona
       const { data: user } = await supabase
         .from('users')
         .select('persona')
-        .eq('id', userId)
+        .eq('id', normalizedUserId)
         .single();
 
       const persona: Persona = request.persona || user?.persona || 'friendly';
@@ -33,23 +37,56 @@ export class ChatService {
       const xpGained = 5;
 
       // Save to chat history
-      const { data: chatData, error: chatError } = await supabase
-        .from('chat_history')
-        .insert({
-          user_id: userId,
-          message: request.message,
-          response: aiResponse,
-          topic: request.topic || null,
-          persona: persona,
-          xp_gained: xpGained,
-        })
-        .select()
-        .single();
+      const insertWithRoles = async (base: any) => {
+        const roleCandidates = ['ai', 'assistant', 'system', 'bot'];
+        let lastError: any = null;
+        for (const role of roleCandidates) {
+          const payload = { ...base, role };
+          const res = await supabase
+            .from('chat_history')
+            .insert(payload)
+            .select()
+            .single();
+          if (!res.error) return res;
+          // if check constraint violation, try next role
+          if (res.error.code === '23514' && (res.error.message || '').includes('check constraint')) {
+            lastError = res.error;
+            continue;
+          }
+          // if schema cache missing columns, caller will decide fallback
+          return res;
+        }
+        return { data: null, error: lastError } as any;
+      };
 
-      if (chatError) throw chatError;
+      // First try full payload
+      let chatDataResp = await insertWithRoles({
+        user_id: normalizedUserId,
+        message: request.message,
+        response: aiResponse,
+        topic: request.topic || null,
+        persona: persona,
+        xp_gained: xpGained,
+      });
+
+      // If the REST schema cache doesn't know columns yet, progressively retry with minimal payload
+      if (
+        chatDataResp.error?.message?.includes("Could not find the 'persona' column") ||
+        chatDataResp.error?.message?.includes("Could not find the 'response' column") ||
+        chatDataResp.error?.message?.includes("Could not find the 'topic' column")
+      ) {
+        chatDataResp = await insertWithRoles({
+          user_id: normalizedUserId,
+          message: request.message,
+          xp_gained: xpGained,
+        });
+      }
+
+      if (chatDataResp.error) throw chatDataResp.error;
+      const chatData = chatDataResp.data;
 
       // Update user XP
-      await this.updateUserXP(userId, xpGained);
+      await this.updateUserXP(normalizedUserId, xpGained);
 
       return {
         reply: aiResponse,

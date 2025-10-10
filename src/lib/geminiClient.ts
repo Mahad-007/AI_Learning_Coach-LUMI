@@ -8,8 +8,11 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
-// Get the Gemini Pro model
-export const getGeminiModel = (modelName: string = 'gemini-pro'): GenerativeModel => {
+// Allow overriding the model via env; default to gemini-2.5-flash
+const DEFAULT_MODEL = (import.meta.env.VITE_GEMINI_MODEL as string) || 'gemini-2.5-flash';
+
+// Get the Gemini model (defaults to fast 2.5 flash)
+export const getGeminiModel = (modelName: string = DEFAULT_MODEL): GenerativeModel => {
   return genAI.getGenerativeModel({ model: modelName });
 };
 
@@ -78,13 +81,20 @@ export const generateStructuredContent = async <T>(
   const response = await result.response;
   const text = response.text();
   
-  // Clean up the response (remove markdown code blocks if present)
-  const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  // Clean up the response (remove markdown code blocks, comments, and trailing commas)
+  let cleanedText = text
+    .replace(/```json\n?/g, '')
+    .replace(/```\n?/g, '')
+    .replace(/^\s*\/\/.*$/gm, '') // Remove single-line comments
+    .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
+    .replace(/,\s*(\]|\})/g, '$1') // Remove trailing commas
+    .trim();
   
   try {
     return JSON.parse(cleanedText) as T;
   } catch (error) {
     console.error('Failed to parse JSON:', cleanedText);
+    console.error('Original text:', text);
     throw new Error('Failed to parse AI response as JSON');
   }
 };
