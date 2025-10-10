@@ -8,8 +8,8 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
-// Get the Gemini Pro model
-export const getGeminiModel = (modelName: string = 'gemini-pro'): GenerativeModel => {
+// Get the Gemini 2.0 Flash model (faster and more capable than Pro)
+export const getGeminiModel = (modelName: string = 'gemini-2.0-flash-exp'): GenerativeModel => {
   return genAI.getGenerativeModel({ model: modelName });
 };
 
@@ -45,7 +45,7 @@ export const generateWithPersona = async (
   return response.text();
 };
 
-// Generate content with streaming
+// Generate content with streaming (character by character)
 export const generateStreamWithPersona = async (
   prompt: string,
   persona: keyof typeof personaPrompts = 'friendly',
@@ -60,7 +60,34 @@ export const generateStreamWithPersona = async (
   for await (const chunk of result.stream) {
     const chunkText = chunk.text();
     fullText += chunkText;
-    onChunk(chunkText);
+    
+    // Stream character by character for smooth effect
+    for (const char of chunkText) {
+      onChunk(char);
+      // Small delay for smooth streaming visual effect
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+  }
+  
+  return fullText;
+};
+
+// Generate content with streaming (word by word for faster display)
+export const generateStreamWithPersonaFast = async (
+  prompt: string,
+  persona: keyof typeof personaPrompts = 'friendly',
+  onChunk: (text: string) => void
+): Promise<string> => {
+  const model = getGeminiModel();
+  const fullPrompt = `${personaPrompts[persona]}\n\n${prompt}`;
+  
+  const result = await model.generateContentStream(fullPrompt);
+  let fullText = '';
+  
+  for await (const chunk of result.stream) {
+    const chunkText = chunk.text();
+    fullText += chunkText;
+    onChunk(chunkText); // Stream in larger chunks (faster)
   }
   
   return fullText;
