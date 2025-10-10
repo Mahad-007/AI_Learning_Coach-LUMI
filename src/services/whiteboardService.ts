@@ -19,10 +19,23 @@ export class WhiteboardService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    // Get user profile for host_name
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .select('name')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      throw new Error('Failed to fetch user profile');
+    }
+
     const sessionData = {
       title: data.title,
       topic: data.topic,
       host_id: user.id,
+      host_name: userProfile?.name || 'Anonymous',
       max_participants: data.max_participants || 10,
       settings: {
         allow_drawing: true,
@@ -35,16 +48,26 @@ export class WhiteboardService {
       }
     };
 
+    console.log('Creating session with data:', sessionData);
+
     const { data: session, error } = await supabase
       .from('whiteboard_sessions')
       .insert(sessionData)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating session:', error);
+      throw new Error(`Failed to create session: ${error.message}`);
+    }
 
     // Add host as participant
-    await this.joinSession(session.id, 'host');
+    try {
+      await this.joinSession(session.id, 'host');
+    } catch (participantError) {
+      console.error('Error adding host as participant:', participantError);
+      // Don't throw here, session was created successfully
+    }
     
     return session;
   }
@@ -64,13 +87,21 @@ export class WhiteboardService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    console.log('Getting sessions for user:', user.id);
+
+    // For now, just get sessions where user is the host
     const { data: sessions, error } = await supabase
       .from('whiteboard_sessions')
       .select('*')
-      .or(`host_id.eq.${user.id},id.in.(select session_id from whiteboard_participants where user_id.eq.${user.id})`)
+      .eq('host_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error getting sessions:', error);
+      throw error;
+    }
+
+    console.log('Found sessions:', sessions);
     return sessions || [];
   }
 

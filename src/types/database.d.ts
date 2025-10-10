@@ -242,6 +242,186 @@ export interface Database {
           badge_icon?: string
         }
       }
+      whiteboard_sessions: {
+        Row: {
+          id: string
+          title: string
+          topic: string
+          host_id: string
+          host_name: string
+          is_active: boolean
+          max_participants: number
+          current_participants: number
+          settings: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          topic: string
+          host_id: string
+          host_name: string
+          is_active?: boolean
+          max_participants?: number
+          current_participants?: number
+          settings?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          topic?: string
+          host_id?: string
+          host_name?: string
+          is_active?: boolean
+          max_participants?: number
+          current_participants?: number
+          settings?: Json
+          updated_at?: string
+        }
+      }
+      whiteboard_participants: {
+        Row: {
+          id: string
+          session_id: string
+          user_id: string
+          user_name: string
+          user_avatar: string | null
+          role: 'host' | 'teacher' | 'student'
+          joined_at: string
+          is_active: boolean
+          cursor_position: Json | null
+          color: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          user_id: string
+          user_name: string
+          user_avatar?: string | null
+          role?: 'host' | 'teacher' | 'student'
+          joined_at?: string
+          is_active?: boolean
+          cursor_position?: Json | null
+          color?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          user_id?: string
+          user_name?: string
+          user_avatar?: string | null
+          role?: 'host' | 'teacher' | 'student'
+          joined_at?: string
+          is_active?: boolean
+          cursor_position?: Json | null
+          color?: string
+        }
+      }
+      whiteboard_elements: {
+        Row: {
+          id: string
+          session_id: string
+          type: 'drawing' | 'text' | 'shape' | 'image'
+          data: Json
+          created_by: string
+          created_at: string
+          updated_at: string
+          layer: number
+          visible: boolean
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          type: 'drawing' | 'text' | 'shape' | 'image'
+          data: Json
+          created_by: string
+          created_at?: string
+          updated_at?: string
+          layer?: number
+          visible?: boolean
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          type?: 'drawing' | 'text' | 'shape' | 'image'
+          data?: Json
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+          layer?: number
+          visible?: boolean
+        }
+      }
+      whiteboard_messages: {
+        Row: {
+          id: string
+          session_id: string
+          user_id: string
+          user_name: string
+          message: string
+          timestamp: string
+          type: 'chat' | 'system' | 'ai'
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          user_id: string
+          user_name: string
+          message: string
+          timestamp?: string
+          type?: 'chat' | 'system' | 'ai'
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          user_id?: string
+          user_name?: string
+          message?: string
+          timestamp?: string
+          type?: 'chat' | 'system' | 'ai'
+        }
+      }
+      friend_invitations: {
+        Row: {
+          id: string
+          from_user_id: string
+          to_user_id: string | null
+          session_id: string
+          invitation_type: 'global' | 'facebook'
+          facebook_friend_id: string | null
+          status: 'pending' | 'accepted' | 'declined'
+          message: string | null
+          created_at: string
+          expires_at: string
+        }
+        Insert: {
+          id?: string
+          from_user_id: string
+          to_user_id?: string | null
+          session_id: string
+          invitation_type: 'global' | 'facebook'
+          facebook_friend_id?: string | null
+          status?: 'pending' | 'accepted' | 'declined'
+          message?: string | null
+          created_at?: string
+          expires_at?: string
+        }
+        Update: {
+          id?: string
+          from_user_id?: string
+          to_user_id?: string | null
+          session_id?: string
+          invitation_type?: 'global' | 'facebook'
+          facebook_friend_id?: string | null
+          status?: 'pending' | 'accepted' | 'declined'
+          message?: string | null
+          created_at?: string
+          expires_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

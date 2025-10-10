@@ -17,7 +17,9 @@ import {
   Trash2,
   Share2,
   Facebook,
-  Globe
+  Globe,
+  Wand2,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { WhiteboardService } from '@/services/whiteboardService';
@@ -61,7 +63,10 @@ export const WhiteboardSession: React.FC = () => {
   const loadSessions = async () => {
     try {
       setLoading(true);
+      console.log('Loading sessions...');
       const userSessions = await WhiteboardService.getUserSessions();
+      console.log('Loaded sessions:', userSessions);
+      console.log('Sessions count:', userSessions.length);
       setSessions(userSessions);
     } catch (error) {
       console.error('Error loading sessions:', error);
@@ -78,8 +83,12 @@ export const WhiteboardSession: React.FC = () => {
     }
 
     try {
+      console.log('Creating session with:', newSession);
       const session = await WhiteboardService.createSession(newSession);
-      setSessions(prev => [session, ...prev]);
+      console.log('Session created successfully:', session);
+      
+      // Reload sessions to get the latest data
+      await loadSessions();
       setShowCreateDialog(false);
       setNewSession({
         title: '',
@@ -95,9 +104,9 @@ export const WhiteboardSession: React.FC = () => {
         }
       });
       toast.success('Session created successfully!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating session:', error);
-      toast.error('Failed to create session');
+      toast.error(error.message || 'Failed to create session');
     }
   };
 
@@ -126,19 +135,33 @@ export const WhiteboardSession: React.FC = () => {
     }
   };
 
-  const handleInviteFriends = async () => {
-    if (!currentSession) return;
-
+  const handleInviteFriends = async (sessionId: string) => {
     try {
       await WhiteboardService.inviteFriend({
-        sessionId: currentSession.id,
-        invitationType: inviteData.invitationType
+        sessionId,
+        invitationType: 'global'
       });
-      setShowInviteDialog(false);
       toast.success('Invitations sent successfully!');
     } catch (error) {
       console.error('Error sending invitations:', error);
       toast.error('Failed to send invitations');
+    }
+  };
+
+  const handleLearnWithAI = async (sessionId: string, topic: string) => {
+    try {
+      // Generate AI content for the session
+      const aiContent = await WhiteboardService.generateTeachingContent(topic, sessionId);
+      
+      // Add AI-generated elements to the session
+      for (const element of aiContent.elements) {
+        await WhiteboardService.addElement(sessionId, element as any);
+      }
+      
+      toast.success(`AI has generated teaching content for "${topic}"!`);
+    } catch (error) {
+      console.error('Error generating AI content:', error);
+      toast.error('Failed to generate AI content');
     }
   };
 
@@ -169,8 +192,17 @@ export const WhiteboardSession: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold">Interactive Whiteboard</h1>
           <p className="text-gray-600">Create collaborative learning sessions with AI assistance</p>
+          {/* Debug info - remove this later */}
+          <p className="text-xs text-gray-400 mt-1">
+            Debug: Loading: {loading.toString()}, Sessions: {sessions.length}
+          </p>
         </div>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={loadSessions} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -277,6 +309,7 @@ export const WhiteboardSession: React.FC = () => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {loading ? (
@@ -311,31 +344,44 @@ export const WhiteboardSession: React.FC = () => {
                     <span className="font-medium">{session.host_name}</span>
                   </div>
                   
-                  <div className="flex space-x-2 pt-2">
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleJoinSession(session.id)}
-                      className="flex-1"
-                    >
-                      <Play className="h-4 w-4 mr-1" />
-                      Join
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => setShowInviteDialog(true)}
-                    >
-                      <Share2 className="h-4 w-4" />
-                    </Button>
-                    {session.host_id === user?.id && (
+                  <div className="space-y-2 pt-2">
+                    <div className="flex space-x-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleJoinSession(session.id)}
+                        className="flex-1"
+                      >
+                        <Play className="h-4 w-4 mr-1" />
+                        Join Session
+                      </Button>
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => handleDeleteSession(session.id)}
+                        onClick={() => handleLearnWithAI(session.id, session.topic)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Wand2 className="h-4 w-4" />
                       </Button>
-                    )}
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleInviteFriends(session.id)}
+                        className="flex-1"
+                      >
+                        <Users className="h-4 w-4 mr-1" />
+                        Add Friends
+                      </Button>
+                      {session.host_id === user?.id && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleDeleteSession(session.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -406,7 +452,7 @@ export const WhiteboardSession: React.FC = () => {
               <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleInviteFriends}>
+              <Button onClick={() => handleInviteFriends(currentSession?.id || '')}>
                 Send Invitations
               </Button>
             </div>
