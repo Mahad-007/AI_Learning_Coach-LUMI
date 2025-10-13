@@ -10,6 +10,9 @@ export { QuizService } from './quizService';
 export { GamificationService } from './gamificationService';
 export { LeaderboardService } from './leaderboardService';
 export { DashboardService } from './dashboardService';
+export { XPService } from './xpService';
+export { QuizResultService } from './quizResultService';
+export { TriviaService } from './triviaService';
 export { WhiteboardService } from './whiteboardService';
 
 // Re-export types
