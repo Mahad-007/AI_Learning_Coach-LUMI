@@ -1,5 +1,8 @@
 import { supabase } from '../lib/supabaseClient';
 import { generateStructuredContent } from '../lib/geminiClient';
+import { GamificationService } from './gamificationService';
+import { AchievementSystem } from './achievementSystem';
+import { XPUpdateService } from './xpUpdateService';
 import type {
   Lesson,
   LessonGenerateRequest,
@@ -76,7 +79,7 @@ export class LessonService {
       });
 
       // Award XP for creating a lesson
-      await this.awardLessonCreationXP(userId);
+      await XPUpdateService.addXP(userId, 10, `lesson_created_${request.difficulty}`);
 
       return {
         lesson: lessonData as Lesson,
@@ -204,8 +207,19 @@ export class LessonService {
 
       if (progressError) throw progressError;
 
-      // Award XP
-      await this.awardLessonCompletionXP(userId, lesson.xp_reward);
+      // Award XP using dedicated service
+      await XPUpdateService.addXP(userId, lesson.xp_reward, `lesson_complete_${lesson.difficulty}`);
+
+      // Award first-time lesson badge (if first lesson)
+      await AchievementSystem.awardFirstTimeBadge(userId, {
+        badge_type: 'first_time',
+        badge_name: 'First Steps',
+        badge_description: 'Completed your first lesson',
+        badge_icon: '🎯',
+      });
+
+      // Trigger database achievement evaluation (for count-based achievements)
+      await AchievementSystem.evaluateAchievements();
 
       return lesson.xp_reward;
     } catch (error: any) {

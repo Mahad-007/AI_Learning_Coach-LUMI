@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, Award, BarChart3, Settings, LogOut, Mail, User, Edit, Camera, Loader2, Sparkles, Target, BookOpen, Brain, MessageSquare, Palette } from "lucide-react";
+import { Trophy, Award, BarChart3, Settings, LogOut, Mail, User, Edit, Camera, Loader2, Sparkles, Target, BookOpen, Brain, MessageSquare, Palette, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
@@ -18,18 +18,23 @@ import { AuthService } from "@/services/authService";
 import type { DashboardStats, LeaderboardEntry } from "@/types/gamification";
 import type { Badge } from "@/types/user";
 import { supabase } from "@/lib/supabaseClient";
+import { AchievementsService, type AchievementWithStatus } from "@/services/achievementsService";
+import { getAllAchievements, getAchievementCategories, type AchievementDefinition } from "@/services/achievementsRegistry";
 
 export default function Profile() {
   const { user, logout, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [badges, setBadges] = useState<Badge[]>([]);
+  const [achievements, setAchievements] = useState<AchievementWithStatus[]>([]);
   const [userRank, setUserRank] = useState<LeaderboardEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [checkingUsername, setCheckingUsername] = useState(false);
+  const [achievementFilter, setAchievementFilter] = useState<'all' | 'unlocked' | 'locked'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -46,17 +51,24 @@ export default function Profile() {
     
     try {
       setLoading(true);
-      const [dashboardStats, userBadges, leaderboardPosition] = await Promise.all([
+      console.log('[Profile] Loading user data for:', user.id);
+      
+      const [dashboardStats, userBadges, userAchievements, leaderboardPosition] = await Promise.all([
         DashboardService.getDashboardStats(user.id),
         fetchUserBadges(user.id),
+        AchievementsService.getUserAchievements(user.id),
         LeaderboardService.getUserPosition(user.id),
       ]);
       
+      console.log('[Profile] Loaded achievements:', userAchievements.length);
+      console.log('[Profile] Unlocked achievements:', userAchievements.filter(a => a.isUnlocked).length);
+      
       setStats(dashboardStats);
       setBadges(userBadges);
+      setAchievements(userAchievements);
       setUserRank(leaderboardPosition);
     } catch (error: any) {
-      console.error("Failed to load profile data:", error);
+      console.error("[Profile] Failed to load profile data:", error);
       if (error?.message && !error.message.includes("not found")) {
         toast.error("Failed to load some profile data");
       }
@@ -77,6 +89,43 @@ export default function Profile() {
         persona: user.persona || "friendly",
       });
     }
+  }, [user, loadUserData]);
+
+  // Real-time badge updates using centralized system
+  useEffect(() => {
+    if (!user) return;
+    
+    console.log('[Profile] Setting up real-time achievement subscription');
+    
+    // Use centralized achievement system for realtime
+    const channel = supabase
+      .channel(`profile_achievements:${user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'badges',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log('[Profile] 🎉 New badge earned via realtime!', payload.new);
+        
+        const badge = payload.new as any;
+        
+        // Show toast (only if not already shown by AchievementSystem)
+        toast.success(`🎉 ${badge.badge_icon} ${badge.badge_name} Unlocked!`, {
+          duration: 5000,
+        });
+        
+        // Reload achievements
+        loadUserData();
+      })
+      .subscribe((status) => {
+        console.log('[Profile] Realtime subscription status:', status);
+      });
+    
+    return () => {
+      console.log('[Profile] Cleaning up achievement subscription');
+      channel.unsubscribe();
+    };
   }, [user, loadUserData]);
 
   const fetchUserBadges = async (userId: string): Promise<Badge[]> => {
@@ -156,6 +205,8 @@ export default function Profile() {
       
       setIsEditMode(false);
       toast.success("Profile updated successfully! ✨");
+      
+      // Reload all data to get new badges (like Profile Pro if earned)
       await loadUserData();
     } catch (error: any) {
       console.error("Failed to update profile:", error);
@@ -197,6 +248,30 @@ export default function Profile() {
       default: return "AI Chat";
     }
   };
+
+  // Filter achievements based on selected filters
+  const getFilteredAchievements = () => {
+    let filteredAchievements = [...achievements];
+    
+    // Filter by locked/unlocked status
+    if (achievementFilter === 'unlocked') {
+      filteredAchievements = filteredAchievements.filter(a => a.isUnlocked);
+    } else if (achievementFilter === 'locked') {
+      filteredAchievements = filteredAchievements.filter(a => !a.isUnlocked && !a.hidden);
+    } else {
+      // For 'all', show unlocked + non-hidden locked
+      filteredAchievements = filteredAchievements.filter(a => a.isUnlocked || !a.hidden);
+    }
+    
+    // Filter by category
+    if (selectedCategory !== 'all') {
+      filteredAchievements = filteredAchievements.filter(a => a.category === selectedCategory);
+    }
+    
+    return filteredAchievements;
+  };
+
+  const achievementCategories = ['all', ...getAchievementCategories()];
 
   if (!user) return null;
 
@@ -596,37 +671,165 @@ export default function Profile() {
           </TabsContent>
 
           <TabsContent value="achievements" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {badges.length === 0 ? (
-              <Card className="p-12 text-center">
-                <Award className="w-20 h-20 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <h3 className="text-2xl font-semibold mb-3">No Badges Yet</h3>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                  Start learning and completing quizzes to earn your first badge! 🎯
-                </p>
-                <Button className="mt-6" onClick={() => navigate("/dashboard")}>
-                  Start Learning
-                </Button>
-              </Card>
-            ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {badges.map((badge, index) => (
-                  <Card 
-                    key={badge.id} 
-                    className="p-6 hover:shadow-lg transition-all duration-300 hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <div className="text-6xl mb-4 text-center">{badge.badge_icon}</div>
-                    <h3 className="font-semibold text-lg mb-2 text-center">{badge.badge_name}</h3>
-                    <p className="text-sm text-muted-foreground mb-3 text-center">
-                      {badge.badge_description}
+            <div className="space-y-6">
+              
+              {/* Achievement Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="p-4 bg-gradient-to-br from-primary/10 to-primary/5">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-primary">
+                      {achievements.filter(a => a.isUnlocked).length}
                     </p>
-                    <p className="text-xs text-muted-foreground text-center border-t pt-3">
-                      🗓️ Earned {new Date(badge.earned_at).toLocaleDateString()}
+                    <p className="text-sm text-muted-foreground">Unlocked</p>
+                  </div>
+                </Card>
+                <Card className="p-4 bg-gradient-to-br from-secondary/10 to-secondary/5">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-secondary">
+                      {achievements.filter(a => !a.isUnlocked && !a.hidden).length}
                     </p>
-                  </Card>
-                ))}
+                    <p className="text-sm text-muted-foreground">Locked</p>
+                  </div>
+                </Card>
+                <Card className="p-4 bg-gradient-to-br from-accent/10 to-accent/5">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-accent">
+                      {achievements.filter(a => !a.hidden).length > 0 
+                        ? Math.round((achievements.filter(a => a.isUnlocked).length / achievements.filter(a => !a.hidden).length) * 100)
+                        : 0}%
+                    </p>
+                    <p className="text-sm text-muted-foreground">Completion</p>
+                  </div>
+                </Card>
               </div>
-            )}
+
+              {/* Filters */}
+              <Card className="p-4">
+                <div className="flex flex-col md:flex-row gap-4">
+                  {/* Status Filter */}
+                  <div className="flex-1">
+                    <Label className="text-sm mb-2 block">Status</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        variant={achievementFilter === 'all' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setAchievementFilter('all')}
+                        className="flex-1"
+                      >
+                        All
+                      </Button>
+                      <Button
+                        variant={achievementFilter === 'unlocked' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setAchievementFilter('unlocked')}
+                        className="flex-1"
+                      >
+                        <Award className="w-4 h-4 mr-1" />
+                        Unlocked
+                      </Button>
+                      <Button
+                        variant={achievementFilter === 'locked' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setAchievementFilter('locked')}
+                        className="flex-1"
+                      >
+                        <Lock className="w-4 h-4 mr-1" />
+                        Locked
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Category Filter */}
+                  <div className="flex-1">
+                    <Label htmlFor="category-filter" className="text-sm mb-2 block">Category</Label>
+                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                      <SelectTrigger id="category-filter">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {achievementCategories.map(category => (
+                          <SelectItem key={category} value={category}>
+                            {category.charAt(0).toUpperCase() + category.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Achievements Grid */}
+              {getFilteredAchievements().length === 0 ? (
+                <Card className="p-12 text-center">
+                  <Award className="w-20 h-20 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <h3 className="text-2xl font-semibold mb-3">No Achievements Found</h3>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                    Try adjusting your filters or start learning to unlock achievements! 🎯
+                  </p>
+                  <Button className="mt-6" onClick={() => navigate("/dashboard")}>
+                    Start Learning
+                  </Button>
+                </Card>
+              ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {getFilteredAchievements().map((achievement, index) => (
+                    <Card 
+                      key={achievement.id} 
+                      className={`p-6 transition-all duration-300 hover:scale-105 animate-in fade-in slide-in-from-bottom-4 ${
+                        achievement.isUnlocked 
+                          ? 'hover:shadow-lg bg-gradient-to-br from-primary/5 to-secondary/5' 
+                          : 'opacity-75 bg-muted/50 hover:shadow-md'
+                      }`}
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      {/* Lock Icon for Locked Achievements */}
+                      {!achievement.isUnlocked && (
+                        <div className="absolute top-3 right-3">
+                          <Lock className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                      )}
+
+                      {/* Achievement Icon */}
+                      <div className={`text-6xl mb-4 text-center ${!achievement.isUnlocked && 'grayscale opacity-50'}`}>
+                        {achievement.icon}
+                      </div>
+
+                      {/* Achievement Details */}
+                      <div className="space-y-2">
+                        <div className="text-xs font-semibold text-primary/70 text-center uppercase tracking-wide">
+                          {achievement.category}
+                        </div>
+                        <h3 className="font-semibold text-lg text-center">
+                          {achievement.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground text-center">
+                          {achievement.description}
+                        </p>
+                        
+                        {/* Requirement or Earned Date */}
+                        <div className="border-t pt-3 mt-3">
+                          {achievement.isUnlocked ? (
+                            <div className="text-xs text-center">
+                              <span className="text-green-600 dark:text-green-400 font-medium">✓ Unlocked</span>
+                              {achievement.earnedAt && (
+                                <p className="text-muted-foreground mt-1">
+                                  {new Date(achievement.earnedAt).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-center text-muted-foreground">
+                              <span className="font-medium">Requirement:</span>
+                              <p className="mt-1">{achievement.requirement}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="leaderboard" className="animate-in fade-in slide-in-from-bottom-4 duration-500">

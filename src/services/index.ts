@@ -14,6 +14,9 @@ export { XPService } from './xpService';
 export { QuizResultService } from './quizResultService';
 export { TriviaService } from './triviaService';
 export { WhiteboardService } from './whiteboardService';
+export { AchievementSystem } from './achievementSystem';
+export { AchievementsService } from './achievementsService';
+export { XPUpdateService } from './xpUpdateService';
 
 // Re-export types
 export type { SignupData, LoginData, AuthResponse, User } from '../types/user';
