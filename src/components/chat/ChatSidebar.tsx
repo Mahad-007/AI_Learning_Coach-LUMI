@@ -10,7 +10,6 @@ import {
   Check,
   X,
   TrendingUp,
-  Flame,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,7 +32,6 @@ interface ChatSidebarProps {
   userName?: string;
   userLevel?: number;
   userXP?: number;
-  userStreak?: number;
 }
 
 export function ChatSidebar({
@@ -43,7 +41,6 @@ export function ChatSidebar({
   userName,
   userLevel,
   userXP,
-  userStreak,
 }: ChatSidebarProps) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -190,10 +187,6 @@ export function ChatSidebar({
             <p className="text-xs text-muted-foreground mt-1.5">
               {Math.ceil(XPService.getXPForNextLevel(userLevel || 1) - (userXP || 0))} XP to Level {(userLevel || 1) + 1}
             </p>
-          </div>
-          <div className="flex items-center gap-2 text-sm pt-2 border-t border-border/30">
-            <Flame className="w-4 h-4 text-orange-500" />
-            <span className="text-muted-foreground">{userStreak || 0} day streak</span>
           </div>
         </div>
       </Card>

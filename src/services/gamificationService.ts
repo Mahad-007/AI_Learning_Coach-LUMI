@@ -7,6 +7,7 @@ import type {
   GamificationUpdate,
 } from '../types/gamification';
 import type { Badge } from '../types/user';
+import { LeaderboardService } from './leaderboardService';
 
 /**
  * Gamification Service
@@ -67,6 +68,10 @@ export class GamificationService {
 
       // Update leaderboard
       await this.updateLeaderboard(userId, newXP);
+
+      // Update weekly and monthly XP
+      await LeaderboardService.updateWeeklyXP(userId, totalXP);
+      await LeaderboardService.updateMonthlyXP(userId, totalXP);
 
       // Check for new badges
       const newBadges = await this.checkAndAwardBadges(userId, newLevel, newXP);

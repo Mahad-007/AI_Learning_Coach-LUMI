@@ -82,13 +82,7 @@ export default function Profile() {
           </TabsList>
 
           <TabsContent value="stats">
-            <div className="grid md:grid-cols-3 gap-6">
-              <Card className="p-6">
-                <h3 className="font-semibold mb-4">Learning Streak</h3>
-                <p className="text-4xl font-bold text-primary mb-2">7 🔥</p>
-                <p className="text-sm text-muted-foreground">Days in a row</p>
-              </Card>
-              
+            <div className="grid md:grid-cols-2 gap-6">
               <Card className="p-6">
                 <h3 className="font-semibold mb-4">Lessons Completed</h3>
                 <p className="text-4xl font-bold text-primary mb-2">28</p>
@@ -108,10 +102,10 @@ export default function Profile() {
               {[
                 { name: "First Steps", desc: "Complete your first lesson", unlocked: true },
                 { name: "Quiz Master", desc: "Score 100% on a quiz", unlocked: true },
-                { name: "Week Warrior", desc: "7 day streak", unlocked: true },
                 { name: "Knowledge Seeker", desc: "Complete 50 lessons", unlocked: false },
                 { name: "Perfect Score", desc: "Get 100% on 10 quizzes", unlocked: false },
-                { name: "Month Master", desc: "30 day streak", unlocked: false },
+                { name: "Top Scholar", desc: "Reach level 10", unlocked: false },
+                { name: "XP Legend", desc: "Earn 10,000 total XP", unlocked: false },
               ].map((achievement, i) => (
                 <Card key={i} className={`p-6 ${!achievement.unlocked && "opacity-50"}`}>
                   <Award className={`w-12 h-12 mb-4 ${achievement.unlocked ? "text-primary" : "text-muted-foreground"}`} />
