@@ -263,16 +263,13 @@ export const WhiteboardSessionComponent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-20">
       <div className="container mx-auto p-6 max-w-7xl">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold">Interactive Whiteboard</h1>
             <p className="text-gray-600">Create collaborative learning sessions with AI assistance</p>
-            {/* Debug info - remove this later */}
-            <p className="text-xs text-gray-400 mt-1">
-              Debug: Loading: {loading.toString()}, Sessions: {sessions.length}
-            </p>
+            {/* Debug info removed */}
           </div>
           <div className="flex space-x-2">
             <Button variant="outline" onClick={loadSessions} disabled={loading}>
