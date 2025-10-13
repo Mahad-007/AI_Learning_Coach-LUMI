@@ -57,13 +57,6 @@ const features = [
     title: "Progress Dashboard",
     description: "Track XP, streaks, completed lessons, and recent achievements at a glance.",
   },
-
-  // Profile
-  {
-    icon: User,
-    title: "Profile & Avatars",
-    description: "Customize your identity, manage preferences, and view your learning history.",
-  },
 ];
 
 const steps = [
