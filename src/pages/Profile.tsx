@@ -423,7 +423,21 @@ export default function Profile() {
                 </Label>
                 <Select
                   value={editForm.theme_preference}
-                  onValueChange={(value) => setEditForm({ ...editForm, theme_preference: value })}
+                  onValueChange={(value) => {
+                    setEditForm({ ...editForm, theme_preference: value });
+                    // Apply theme immediately
+                    if (value === 'light') {
+                      document.documentElement.classList.remove('dark');
+                      localStorage.setItem('theme', 'light');
+                    } else if (value === 'dark') {
+                      document.documentElement.classList.add('dark');
+                      localStorage.setItem('theme', 'dark');
+                    } else {
+                      localStorage.removeItem('theme');
+                      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                      document.documentElement.classList.toggle('dark', prefersDark);
+                    }
+                  }}
                 >
                   <SelectTrigger className="transition-all focus:ring-2 focus:ring-primary">
                     <SelectValue />
