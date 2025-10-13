@@ -31,32 +31,7 @@ export default function AboutUs() {
     },
   ];
 
-  const team = [
-    {
-      name: "Dr. Sarah Johnson",
-      role: "CEO & Co-Founder",
-      avatar: "👩‍💼",
-      bio: "Former AI researcher at MIT with 15+ years in EdTech",
-    },
-    {
-      name: "Michael Chen",
-      role: "CTO & Co-Founder",
-      avatar: "👨‍💻",
-      bio: "Led engineering teams at Google and Microsoft",
-    },
-    {
-      name: "Emily Rodriguez",
-      role: "Head of Education",
-      avatar: "👩‍🏫",
-      bio: "20+ years experience in curriculum development",
-    },
-    {
-      name: "David Park",
-      role: "Head of Product",
-      avatar: "👨‍🎨",
-      bio: "Product design veteran from Apple and Duolingo",
-    },
-  ];
+  // Team section removed
 
   return (
     <div className="min-h-screen pt-20 pb-12">
@@ -148,31 +123,7 @@ export default function AboutUs() {
           </div>
         </div>
 
-        {/* Team */}
-        <div>
-          <div className="text-center mb-12" data-aos="fade-down">
-            <h2 className="text-3xl font-bold mb-4">Meet Our Team</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Passionate educators, engineers, and innovators working together
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {team.map((member, index) => (
-              <Card
-                key={index}
-                className="p-6 text-center hover:shadow-lg transition-all duration-300"
-                data-aos="fade-up"
-                data-aos-delay={index * 100}
-              >
-                <div className="text-6xl mb-4">{member.avatar}</div>
-                <h3 className="text-lg font-bold mb-1">{member.name}</h3>
-                <p className="text-sm text-primary font-medium mb-3">{member.role}</p>
-                <p className="text-xs text-muted-foreground">{member.bio}</p>
-              </Card>
-            ))}
-          </div>
-        </div>
+        {/* Team section removed */}
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-20" data-aos="fade-up">
