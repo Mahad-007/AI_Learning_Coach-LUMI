@@ -31,6 +31,7 @@ import type {
   ShapeData 
 } from '@/types/whiteboard';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabaseClient';
 
 interface WhiteboardProps {
   sessionId: string;
@@ -142,6 +143,87 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
     }
   };
 
+  // Realtime subscriptions for elements, messages, and participants
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const channel = supabase.channel(`whiteboard:${sessionId}`);
+
+    // Elements INSERT
+    channel.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'whiteboard_elements', filter: `session_id=eq.${sessionId}` },
+      (payload: any) => {
+        const newEl = payload.new as WhiteboardElement;
+        setElements(prev => {
+          if (prev.some(e => e.id === newEl.id)) return prev; // dedupe
+          // Replace temp element if it exists (same last points pattern not reliable; rely on id dedupe only)
+          return [...prev, newEl];
+        });
+      }
+    );
+
+    // Elements UPDATE
+    channel.on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'whiteboard_elements', filter: `session_id=eq.${sessionId}` },
+      (payload: any) => {
+        const updated = payload.new as WhiteboardElement;
+        setElements(prev => prev.map(e => (e.id === updated.id ? updated : e)));
+      }
+    );
+
+    // Elements DELETE
+    channel.on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'whiteboard_elements', filter: `session_id=eq.${sessionId}` },
+      (payload: any) => {
+        const removedId = payload.old.id as string;
+        setElements(prev => prev.filter(e => e.id !== removedId));
+      }
+    );
+
+    // Messages INSERT
+    channel.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'whiteboard_messages', filter: `session_id=eq.${sessionId}` },
+      (payload: any) => {
+        const msg = payload.new as WhiteboardMessage;
+        setMessages(prev => (prev.some(m => m.id === msg.id) ? prev : [...prev, msg]));
+      }
+    );
+
+    // Participants INSERT
+    channel.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'whiteboard_participants', filter: `session_id=eq.${sessionId}` },
+      (payload: any) => {
+        const p = payload.new as WhiteboardParticipant;
+        setParticipants(prev => (prev.some(x => x.id === p.id) ? prev : [...prev, p]));
+      }
+    );
+
+    // Participants DELETE
+    channel.on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'whiteboard_participants', filter: `session_id=eq.${sessionId}` },
+      (payload: any) => {
+        const removedId = payload.old.id as string;
+        setParticipants(prev => prev.filter(p => p.id !== removedId));
+      }
+    );
+
+    channel.subscribe(status => {
+      if (status === 'SUBSCRIBED') {
+        // Optionally log
+      }
+    });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [sessionId]);
+
   // Drawing handlers
   const handleMouseDown = useCallback((e: any) => {
     if (isAnimating) return; // Prevent drawing during AI animation
@@ -244,7 +326,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
     }).catch(console.error);
   }, [newText, textPosition, currentColor, sessionId, user?.id, elements.length]);
 
-  // Animate drawing elements smoothly
+  // Animate drawing elements smoothly (append to local state after a delay)
   const animateDrawing = useCallback(async (element: WhiteboardElement, delay: number = 0) => {
     return new Promise<void>((resolve) => {
       setTimeout(() => {
@@ -257,19 +339,36 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
   // Chat handling
   const handleAddElements = useCallback(async (newElements: WhiteboardElement[]) => {
     setIsAnimating(true);
-    
-    // Sort elements by layer for proper drawing order
+
+    // Sort by layer for proper order
     const sortedElements = [...newElements].sort((a, b) => (a.layer || 0) - (b.layer || 0));
-    
-    // Animate each element with a delay
+
+    // Persist each element to DB so it broadcasts via realtime, and animate locally
     for (let i = 0; i < sortedElements.length; i++) {
-      const element = sortedElements[i];
-      const delay = element.type === 'drawing' ? i * 200 : i * 100; // Longer delay for drawings
-      await animateDrawing(element, delay);
+      const raw = sortedElements[i];
+      const delay = raw.type === 'drawing' ? i * 200 : i * 100;
+
+      const elementToInsert: Omit<WhiteboardElement, 'id' | 'created_at' | 'updated_at'> = {
+        session_id: sessionId,
+        type: raw.type,
+        data: raw.data,
+        created_by: user?.id || '',
+        layer: raw.layer ?? i + 1,
+        visible: raw.visible ?? true
+      } as any;
+
+      try {
+        const inserted = await WhiteboardService.addElement(sessionId, elementToInsert);
+        // Animate the inserted version (has definitive id), realtime will also deliver but dedupe by id
+        await animateDrawing(inserted, delay);
+      } catch (e) {
+        console.error('Error adding AI element:', e);
+        toast.error('Failed to add AI-generated element');
+      }
     }
-    
+
     setIsAnimating(false);
-  }, [animateDrawing]);
+  }, [animateDrawing, sessionId, user?.id]);
 
   const handleSendMessage = useCallback(async () => {
     if (!chatMessage.trim()) return;
