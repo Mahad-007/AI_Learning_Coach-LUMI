@@ -43,6 +43,7 @@ const authenticatedNavLinks = [
     ]
   },
   { name: "Leaderboard", path: "/leaderboard", icon: Trophy, type: "link" },
+  { name: "Friends", path: "/friends", icon: Users, type: "link" },
 ];
 
 export const Navigation = () => {
