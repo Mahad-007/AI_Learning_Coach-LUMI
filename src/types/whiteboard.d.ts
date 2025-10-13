@@ -7,6 +7,8 @@ export interface WhiteboardSession {
   is_active: boolean;
   max_participants: number;
   current_participants: number;
+  room_code?: string; // Optional room code for joining
+  is_joinable: boolean; // Whether session accepts new participants
   created_at: string;
   updated_at: string;
   settings: WhiteboardSettings;

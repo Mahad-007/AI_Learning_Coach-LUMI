@@ -89,9 +89,6 @@ export default function Home() {
                     Start Learning <ArrowRight className="ml-2 w-5 h-5" />
                   </Link>
                 </Button>
-                <Button variant="outline" size="xl" asChild>
-                  <Link to="/demo">Try Demo</Link>
-                </Button>
               </div>
             </div>
 

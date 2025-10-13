@@ -328,7 +328,6 @@ export default function Chat() {
             userName={user?.name}
             userLevel={user?.level}
             userXP={user?.xp}
-            userStreak={user?.streak}
           />
         )}
       </div>

@@ -43,6 +43,15 @@ export class AuthService {
 
       if (userError) throw userError;
 
+      // Create initial leaderboard entry
+      await supabase.from('leaderboard').insert({
+        user_id: authData.user.id,
+        total_xp: 0,
+        weekly_xp: 0,
+        monthly_xp: 0,
+        rank: 0,
+      });
+
       // Award first user badge
       await this.awardFirstUserBadge(authData.user.id);
 
@@ -83,8 +92,22 @@ export class AuthService {
 
       if (userError) throw userError;
 
-      // Update streak if necessary
-      await this.updateLoginStreak(authData.user.id);
+      // Ensure leaderboard entry exists (for users created before this fix)
+      const { data: leaderboardEntry } = await supabase
+        .from('leaderboard')
+        .select('id')
+        .eq('user_id', authData.user.id)
+        .single();
+
+      if (!leaderboardEntry) {
+        await supabase.from('leaderboard').insert({
+          user_id: authData.user.id,
+          total_xp: userData.xp || 0,
+          weekly_xp: 0,
+          monthly_xp: 0,
+          rank: 0,
+        });
+      }
 
       return {
         user: userData as User,
@@ -125,10 +148,39 @@ export class AuthService {
   }
 
   /**
+   * Check if username is available
+   */
+  static async checkUsernameAvailability(username: string, currentUserId?: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id')
+        .eq('username', username)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      // Username is available if no data, or if it belongs to current user
+      return !data || (currentUserId && data.id === currentUserId);
+    } catch (error: any) {
+      console.error('Check username error:', error);
+      return false;
+    }
+  }
+
+  /**
    * Update user profile
    */
   static async updateProfile(userId: string, updates: Partial<User>): Promise<User> {
     try {
+      // Check username availability if username is being updated
+      if (updates.username) {
+        const isAvailable = await this.checkUsernameAvailability(updates.username, userId);
+        if (!isAvailable) {
+          throw new Error('Username is already taken');
+        }
+      }
+
       const { data, error } = await supabase
         .from('users')
         .update({

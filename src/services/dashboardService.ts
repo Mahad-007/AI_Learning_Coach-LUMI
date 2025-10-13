@@ -43,11 +43,6 @@ export class DashboardService {
           xp_for_next_level: levelInfo.xp_for_next_level,
           progress_percentage: levelInfo.progress_percentage,
         },
-        streak: {
-          current: userProfile.streak,
-          longest: userProfile.streak, // TODO: Track longest streak separately
-          last_activity: userProfile.updated_at,
-        },
         lessons: lessonsStats,
         quizzes: quizzesStats,
         badges: {
@@ -121,29 +116,23 @@ export class DashboardService {
     average_score: number;
     perfect_scores: number;
   }> {
-    const { data: quizzes } = await supabase
-      .from('quizzes')
-      .select('id')
+    // Get quiz results from quiz_results table
+    const { data: quizResults } = await supabase
+      .from('quiz_results')
+      .select('score_percentage')
       .eq('user_id', userId);
 
-    const { data: progress } = await supabase
-      .from('user_progress')
-      .select('quiz_score')
-      .eq('user_id', userId)
-      .not('quiz_score', 'is', null);
-
-    const total = quizzes?.length || 0;
-    const completed = progress?.length || 0;
-    const perfectScores = progress?.filter((p) => p.quiz_score === 100).length || 0;
+    const completed = quizResults?.length || 0;
+    const perfectScores = quizResults?.filter((q) => q.score_percentage === 100).length || 0;
 
     let averageScore = 0;
-    if (progress && progress.length > 0) {
-      const totalScore = progress.reduce((sum, p) => sum + (p.quiz_score || 0), 0);
-      averageScore = Math.round(totalScore / progress.length);
+    if (quizResults && quizResults.length > 0) {
+      const totalScore = quizResults.reduce((sum, q) => sum + (q.score_percentage || 0), 0);
+      averageScore = Math.round(totalScore / quizResults.length);
     }
 
     return {
-      total,
+      total: completed,
       completed,
       average_score: averageScore,
       perfect_scores: perfectScores,

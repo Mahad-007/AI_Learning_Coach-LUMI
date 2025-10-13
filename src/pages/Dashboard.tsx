@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, Flame, Award, BookOpen, TrendingUp, Clock, ArrowRight, Zap, MessageSquare, Brain } from "lucide-react";
+import { Trophy, Award, BookOpen, TrendingUp, Clock, ArrowRight, Zap, MessageSquare, Brain } from "lucide-react";
 import AOS from "aos";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBackend } from "@/hooks/useBackend";
@@ -74,7 +74,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
           <Card className="p-6 hover:shadow-lg transition-all duration-300" data-aos="zoom-in">
             <TrendingUp className="w-8 h-8 mb-3 text-primary" />
             <p className="text-2xl font-bold mb-1">{stats.xp.total.toLocaleString()}</p>
@@ -88,12 +88,6 @@ export default function Dashboard() {
           </Card>
           
           <Card className="p-6 hover:shadow-lg transition-all duration-300" data-aos="zoom-in" data-aos-delay={200}>
-            <Flame className="w-8 h-8 mb-3 text-orange-500" />
-            <p className="text-2xl font-bold mb-1">{stats.streak.current} days</p>
-            <p className="text-sm text-muted-foreground">Current Streak</p>
-          </Card>
-          
-          <Card className="p-6 hover:shadow-lg transition-all duration-300" data-aos="zoom-in" data-aos-delay={300}>
             <Award className="w-8 h-8 mb-3 text-accent" />
             <p className="text-2xl font-bold mb-1">{stats.badges.total}</p>
             <p className="text-sm text-muted-foreground">Badges Earned</p>
