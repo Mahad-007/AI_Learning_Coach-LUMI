@@ -397,5 +397,6 @@ For questions or issues:
 ---
 
 **Built with ❤️ using React, TypeScript, Supabase, and Gemini AI**
-#   A i - l e a r n i n g - c o a c h - 2 . 0  
+#   A i - l e a r n i n g - c o a c h - 2 . 0 
+ 
  
