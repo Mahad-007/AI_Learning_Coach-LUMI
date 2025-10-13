@@ -2,25 +2,67 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Brain, Zap, Target, Users, ArrowRight, CheckCircle2, Star } from "lucide-react";
+import { Brain, Zap, Target, Users, ArrowRight, CheckCircle2, Star, PenTool, MessageSquare, Trophy, BarChart3, BookOpen, User } from "lucide-react";
 import AOS from "aos";
 import heroImage from "@/assets/hero-illustration.jpg";
 
 const features = [
+  // Core AI learning
   {
     icon: Brain,
     title: "AI Chat Coach",
-    description: "Get personalized guidance from your AI tutor, available 24/7 to help you master any subject.",
+    description: "24/7 personalized tutoring for any topic with step‑by‑step guidance.",
   },
   {
-    icon: Zap,
-    title: "Gamified XP System",
-    description: "Earn XP, unlock badges, and level up as you progress through your learning journey.",
+    icon: BookOpen,
+    title: "AI Lesson Generator",
+    description: "Instant lesson plans, explanations, and examples tailored to your level.",
   },
   {
     icon: Target,
     title: "Personalized Learning Paths",
-    description: "Custom learning paths tailored to your goals, skill level, and learning style.",
+    description: "Adaptive paths that match your goals, progress, and learning style.",
+  },
+
+  // Collaboration
+  {
+    icon: PenTool,
+    title: "Interactive Whiteboard",
+    description: "Realtime collaborative canvas with drawing, text, shapes, and AI assistance.",
+  },
+  {
+    icon: Users,
+    title: "Join by Code & Invite Friends",
+    description: "Create a session code to collaborate instantly with classmates or friends.",
+  },
+  {
+    icon: MessageSquare,
+    title: "Realtime Chat",
+    description: "Discuss concepts, share tips, and coordinate in-session with built‑in chat.",
+  },
+
+  // Practice & motivation
+  {
+    icon: Zap,
+    title: "Quizzes & Trivia",
+    description: "Practice with quizzes or battle friends in trivia rooms using shareable codes.",
+  },
+  {
+    icon: Trophy,
+    title: "Leaderboard & Badges",
+    description: "Climb leaderboards, unlock badges, and celebrate milestones with peers.",
+  },
+  {
+    icon: BarChart3,
+    title: "Progress Dashboard",
+    description: "Track XP, streaks, completed lessons, and recent achievements at a glance.",
+  },
+
+  // Profile
+  {
+    icon: User,
+    title: "Profile & Avatars",
+    description: "Customize your identity, manage preferences, and view your learning history.",
   },
 ];
 
@@ -118,7 +160,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
