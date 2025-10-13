@@ -465,9 +465,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
   };
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden">
       {/* Toolbar */}
-      <div className="w-16 bg-white border-r border-gray-200 flex flex-col items-center py-4 space-y-2 overflow-y-auto">
+      <div className="w-16 bg-card border-r border-border flex flex-col items-center py-4 space-y-2 overflow-y-auto">
         <Button
           variant={currentTool === 'pen' ? 'default' : 'ghost'}
           size="sm"
@@ -539,14 +539,14 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
       </div>
 
       {/* Color Palette */}
-      <div className="w-48 bg-white border-r border-gray-200 p-4 overflow-y-auto">
-        <h3 className="text-sm font-medium mb-2">Colors</h3>
+      <div className="w-48 bg-card border-r border-border p-4 overflow-y-auto">
+        <h3 className="text-sm font-medium mb-2 text-foreground">Colors</h3>
         <div className="grid grid-cols-4 gap-2">
           {colors.map((color) => (
             <button
               key={color}
               className={`w-8 h-8 rounded border-2 ${
-                currentColor === color ? 'border-gray-800' : 'border-gray-300'
+                currentColor === color ? 'border-foreground' : 'border-border'
               }`}
               style={{ backgroundColor: color }}
               onClick={() => setCurrentColor(color)}
@@ -555,7 +555,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
         </div>
         
         <div className="mt-4">
-          <label className="text-sm font-medium">Stroke Width</label>
+          <label className="text-sm font-medium text-foreground">Stroke Width</label>
           <input
             type="range"
             min="1"
@@ -564,23 +564,23 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
             onChange={(e) => setStrokeWidth(Number(e.target.value))}
             className="w-full mt-1"
           />
-          <span className="text-xs text-gray-500">{strokeWidth}px</span>
+          <span className="text-xs text-muted-foreground">{strokeWidth}px</span>
         </div>
       </div>
 
       {/* Main Canvas */}
       <div className="flex-1 relative overflow-auto" ref={canvasContainerRef}>
         {/* Session Title Header */}
-        <div className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 py-2 shadow-sm">
+        <div className="sticky top-0 z-20 bg-card border-b border-border px-4 py-2 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">{sessionTitle || 'Whiteboard Session'}</h2>
-                <p className="text-sm text-gray-600">{sessionTopic || 'Interactive Learning Session'}</p>
+                <h2 className="text-lg font-semibold text-foreground">{sessionTitle || 'Whiteboard Session'}</h2>
+                <p className="text-sm text-muted-foreground">{sessionTopic || 'Interactive Learning Session'}</p>
               </div>
               {isAnimating && (
-                <div className="flex items-center space-x-2 text-blue-600">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <div className="flex items-center space-x-2 text-primary">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
                   <span className="text-sm">AI Drawing...</span>
                 </div>
               )}
@@ -594,7 +594,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
         </div>
         
         <div 
-          className="bg-white"
+          className="bg-card"
           style={{ 
             width: stageSize.width, 
             height: stageSize.height,
@@ -628,7 +628,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
 
         {/* Text Input Modal */}
         {showTextInput && (
-          <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-lg border z-10">
+          <div className="absolute top-4 left-4 bg-card p-4 rounded-lg shadow-lg border border-border z-10">
             <Input
               value={newText}
               onChange={(e) => setNewText(e.target.value)}
@@ -645,11 +645,11 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
       </div>
 
       {/* Sidebar */}
-      <div className="w-80 bg-white border-l border-gray-200 flex flex-col overflow-hidden">
+      <div className="w-80 bg-card border-l border-border flex flex-col overflow-hidden">
         {/* Participants */}
-        <div className="p-4 border-b border-gray-200 flex-shrink-0">
+        <div className="p-4 border-b border-border flex-shrink-0">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium">Participants</h3>
+            <h3 className="text-sm font-medium text-foreground">Participants</h3>
             <Badge variant="secondary">{participants.length}</Badge>
           </div>
           <div className="space-y-2 max-h-32 overflow-y-auto">
@@ -659,7 +659,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: participant.color }}
                 />
-                <span className="text-sm">{participant.user_name}</span>
+                <span className="text-sm text-foreground">{participant.user_name}</span>
                 <Badge variant="outline" className="text-xs">
                   {participant.role}
                 </Badge>
@@ -671,18 +671,18 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
         {/* Chat */}
         {showChat && (
           <div className="flex-1 flex flex-col min-h-0">
-            <div className="p-4 border-b border-gray-200 flex-shrink-0">
-              <h3 className="text-sm font-medium">Chat</h3>
+            <div className="p-4 border-b border-border flex-shrink-0">
+              <h3 className="text-sm font-medium text-foreground">Chat</h3>
             </div>
             <div className="flex-1 p-4 overflow-y-auto space-y-2 min-h-0">
               {messages.map((message) => (
                 <div key={message.id} className="text-sm">
-                  <span className="font-medium">{message.user_name}:</span>
-                  <span className="ml-2">{message.message}</span>
+                  <span className="font-medium text-foreground">{message.user_name}:</span>
+                  <span className="ml-2 text-foreground">{message.message}</span>
                 </div>
               ))}
             </div>
-            <div className="p-4 border-t border-gray-200 flex-shrink-0">
+            <div className="p-4 border-t border-border flex-shrink-0">
               <div className="flex space-x-2">
                 <Input
                   value={chatMessage}
@@ -699,10 +699,10 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
         {/* Settings */}
         {showSettings && (
           <div className="flex-1 p-4 overflow-y-auto min-h-0">
-            <h3 className="text-sm font-medium mb-4">Settings</h3>
+            <h3 className="text-sm font-medium mb-4 text-foreground">Settings</h3>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium">AI Assistant</label>
+                <label className="text-sm font-medium text-foreground">AI Assistant</label>
                 <AIAssistant 
                   sessionId={sessionId}
                   topic={sessionTopic || 'General Topic'}
@@ -710,7 +710,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Session</label>
+                <label className="text-sm font-medium text-foreground">Session</label>
                 <FriendInvitationComponent 
                   sessionId={sessionId}
                   sessionTitle={sessionTitle || 'Whiteboard Session'}
