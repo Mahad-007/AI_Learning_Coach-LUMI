@@ -1,26 +1,48 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Brain, Home, BookOpen, Trophy, BarChart3, Users, User, DollarSign, Sparkles, MessageSquare, Zap, PenTool } from "lucide-react";
+import { Menu, X, Brain, Home, BookOpen, Trophy, BarChart3, Users, User, DollarSign, Sparkles, MessageSquare, Zap, PenTool, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { 
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
 const publicNavLinks = [
-  { name: "Home", path: "/", icon: Home },
-  { name: "Features", path: "/#features", icon: Sparkles },
-  { name: "Pricing", path: "/#pricing", icon: DollarSign },
+  { name: "Home", path: "/", icon: Home, type: "link" },
+  { name: "Features", path: "/#features", icon: Sparkles, type: "link" },
+  { name: "Pricing", path: "/#pricing", icon: DollarSign, type: "link" },
 ];
 
 const authenticatedNavLinks = [
-  { name: "Dashboard", path: "/dashboard", icon: BarChart3 },
-  { name: "AI Chat", path: "/chat", icon: MessageSquare },
-  { name: "Learn", path: "/learn", icon: BookOpen },
-  { name: "Whiteboard", path: "/whiteboard", icon: PenTool },
-  { name: "Quizzes", path: "/quiz", icon: Brain },
-  { name: "Trivia Battle", path: "/trivia", icon: Zap },
-  { name: "Leaderboard", path: "/leaderboard", icon: Trophy },
+  { name: "Dashboard", path: "/dashboard", icon: BarChart3, type: "link" },
+  { name: "AI Chat", path: "/chat", icon: MessageSquare, type: "link" },
+  { 
+    name: "Learn", 
+    icon: BookOpen, 
+    type: "dropdown",
+    items: [
+      { name: "Learn", path: "/learn", icon: BookOpen },
+      { name: "Whiteboard", path: "/whiteboard", icon: PenTool },
+    ]
+  },
+  { 
+    name: "Quiz", 
+    icon: Brain, 
+    type: "dropdown",
+    items: [
+      { name: "Quizzes", path: "/quiz", icon: Brain },
+      { name: "Trivia Battle", path: "/trivia", icon: Zap },
+    ]
+  },
+  { name: "Leaderboard", path: "/leaderboard", icon: Trophy, type: "link" },
 ];
 
 export const Navigation = () => {
@@ -46,8 +68,56 @@ export const Navigation = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => {
+            {navLinks.map((link: any, index) => {
               const Icon = link.icon;
+              
+              if (link.type === "dropdown") {
+                const isActive = link.items.some((item: any) => location.pathname === item.path);
+                
+                return (
+                  <div key={index} className="relative group">
+                    <button
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300",
+                        isActive
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      )}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{link.name}</span>
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                    
+                    {/* Dropdown Content */}
+                    <div className="absolute left-0 top-full mt-2 w-[200px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                      <div className="bg-card border border-border rounded-lg shadow-lg p-2 space-y-1">
+                        {link.items.map((item: any) => {
+                          const ItemIcon = item.icon;
+                          const itemIsActive = location.pathname === item.path;
+                          return (
+                            <Link
+                              key={item.path}
+                              to={item.path}
+                              className={cn(
+                                "flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-sm",
+                                itemIsActive
+                                  ? "bg-primary/10 text-primary font-medium"
+                                  : "hover:bg-muted text-foreground"
+                              )}
+                            >
+                              <ItemIcon className="w-5 h-5" />
+                              <span>{item.name}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              
+              // Regular link
               const isActive = location.pathname === link.path;
               return (
                 <Link
@@ -128,8 +198,40 @@ export const Navigation = () => {
       {isOpen && (
         <div className="md:hidden bg-card border-t border-border animate-slide-up">
           <div className="container mx-auto px-4 py-4 space-y-2">
-            {navLinks.map((link) => {
+            {navLinks.map((link: any, index) => {
               const Icon = link.icon;
+              
+              if (link.type === "dropdown") {
+                return (
+                  <div key={index} className="space-y-1">
+                    <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                      {link.name}
+                    </div>
+                    {link.items.map((item: any) => {
+                      const ItemIcon = item.icon;
+                      const isActive = location.pathname === item.path;
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setIsOpen(false)}
+                          className={cn(
+                            "flex items-center gap-3 px-6 py-3 rounded-lg transition-all duration-300",
+                            isActive
+                              ? "bg-primary/10 text-primary font-medium"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                          )}
+                        >
+                          <ItemIcon className="w-5 h-5" />
+                          <span>{item.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                );
+              }
+              
+              // Regular link
               const isActive = location.pathname === link.path;
               return (
                 <Link

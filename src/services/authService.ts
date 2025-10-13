@@ -43,6 +43,15 @@ export class AuthService {
 
       if (userError) throw userError;
 
+      // Create initial leaderboard entry
+      await supabase.from('leaderboard').insert({
+        user_id: authData.user.id,
+        total_xp: 0,
+        weekly_xp: 0,
+        monthly_xp: 0,
+        rank: 0,
+      });
+
       // Award first user badge
       await this.awardFirstUserBadge(authData.user.id);
 
@@ -83,8 +92,22 @@ export class AuthService {
 
       if (userError) throw userError;
 
-      // Update streak if necessary
-      await this.updateLoginStreak(authData.user.id);
+      // Ensure leaderboard entry exists (for users created before this fix)
+      const { data: leaderboardEntry } = await supabase
+        .from('leaderboard')
+        .select('id')
+        .eq('user_id', authData.user.id)
+        .single();
+
+      if (!leaderboardEntry) {
+        await supabase.from('leaderboard').insert({
+          user_id: authData.user.id,
+          total_xp: userData.xp || 0,
+          weekly_xp: 0,
+          monthly_xp: 0,
+          rank: 0,
+        });
+      }
 
       return {
         user: userData as User,
