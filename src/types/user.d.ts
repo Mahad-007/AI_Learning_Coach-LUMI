@@ -1,14 +1,20 @@
 export type Persona = 'friendly' | 'strict' | 'fun' | 'scholar';
+export type LearningMode = 'ai_chat' | 'stories' | 'whiteboard' | 'quiz' | 'tutoring';
+export type ThemePreference = 'light' | 'dark' | 'system';
 
 export interface User {
   id: string;
   name: string;
   email: string;
+  username?: string;
+  bio?: string;
   avatar_url: string | null;
   xp: number;
   level: number;
   streak: number;
   persona: Persona;
+  learning_mode?: LearningMode;
+  theme_preference?: ThemePreference;
   created_at: string;
   updated_at: string;
 }
