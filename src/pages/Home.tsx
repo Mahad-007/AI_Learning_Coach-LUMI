@@ -169,42 +169,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16" data-aos="fade-up">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">What Learners Say</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Join thousands of successful learners worldwide
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <Card
-                key={index}
-                className="p-6 hover:shadow-lg transition-all duration-300"
-                data-aos="fade-up"
-                data-aos-delay={index * 100}
-              >
-                <div className="flex items-center gap-1 mb-4">
-                  {Array.from({ length: testimonial.rating }).map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-muted-foreground mb-6 italic">"{testimonial.quote}"</p>
-                <div className="flex items-center gap-3">
-                  <div className="text-4xl">{testimonial.avatar}</div>
-                  <div>
-                    <p className="font-semibold">{testimonial.name}</p>
-                    <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Testimonials section removed */}
 
       {/* CTA Section */}
       <section className="py-20">
