@@ -148,10 +148,39 @@ export class AuthService {
   }
 
   /**
+   * Check if username is available
+   */
+  static async checkUsernameAvailability(username: string, currentUserId?: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id')
+        .eq('username', username)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      // Username is available if no data, or if it belongs to current user
+      return !data || (currentUserId && data.id === currentUserId);
+    } catch (error: any) {
+      console.error('Check username error:', error);
+      return false;
+    }
+  }
+
+  /**
    * Update user profile
    */
   static async updateProfile(userId: string, updates: Partial<User>): Promise<User> {
     try {
+      // Check username availability if username is being updated
+      if (updates.username) {
+        const isAvailable = await this.checkUsernameAvailability(updates.username, userId);
+        if (!isAvailable) {
+          throw new Error('Username is already taken');
+        }
+      }
+
       const { data, error } = await supabase
         .from('users')
         .update({

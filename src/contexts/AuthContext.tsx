@@ -7,12 +7,16 @@ interface User {
   id: string;
   name: string;
   email: string;
+  username?: string;
+  bio?: string;
   role: string;
   xp: number;
   level: number;
   avatar?: string;
   streak?: number;
   persona?: string;
+  learning_mode?: string;
+  theme_preference?: string;
 }
 
 interface AuthContextType {
@@ -43,12 +47,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id: currentUser.id,
           name: currentUser.name,
           email: currentUser.email,
+          username: currentUser.username,
+          bio: currentUser.bio,
           role: "student", // Default role
           xp: currentUser.xp,
           level: currentUser.level,
           avatar: currentUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.email}`,
           streak: currentUser.streak,
           persona: currentUser.persona,
+          learning_mode: currentUser.learning_mode,
+          theme_preference: currentUser.theme_preference,
         });
       }
     } catch (error) {
@@ -66,12 +74,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         id: response.user.id,
         name: response.user.name,
         email: response.user.email,
+        username: response.user.username,
+        bio: response.user.bio,
         role: "student",
         xp: response.user.xp,
         level: response.user.level,
         avatar: response.user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${response.user.email}`,
         streak: response.user.streak,
         persona: response.user.persona,
+        learning_mode: response.user.learning_mode,
+        theme_preference: response.user.theme_preference,
       });
       
       toast.success(`Welcome back, ${response.user.name}!`);
@@ -93,12 +105,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         id: response.user.id,
         name: response.user.name,
         email: response.user.email,
+        username: response.user.username,
+        bio: response.user.bio,
         role: data.role || "student",
         xp: response.user.xp,
         level: response.user.level,
         avatar: response.user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${response.user.email}`,
         streak: response.user.streak,
         persona: response.user.persona,
+        learning_mode: response.user.learning_mode,
+        theme_preference: response.user.theme_preference,
       });
       
       toast.success("Account created successfully! Welcome! 🎉");
@@ -125,15 +141,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const updatedUser = await AuthService.updateProfile(user.id, {
         name: updates.name,
+        username: updates.username,
+        bio: updates.bio,
         avatar_url: updates.avatar,
         persona: updates.persona as any,
+        learning_mode: updates.learning_mode as any,
+        theme_preference: updates.theme_preference as any,
       });
       
       setUser({
         ...user,
         name: updatedUser.name,
+        username: updatedUser.username,
+        bio: updatedUser.bio,
         avatar: updatedUser.avatar_url || user.avatar,
         persona: updatedUser.persona,
+        learning_mode: updatedUser.learning_mode,
+        theme_preference: updatedUser.theme_preference,
         xp: updatedUser.xp,
         level: updatedUser.level,
         streak: updatedUser.streak,
