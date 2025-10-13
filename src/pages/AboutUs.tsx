@@ -125,25 +125,7 @@ export default function AboutUs() {
 
         {/* Team section removed */}
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-20" data-aos="fade-up">
-          <Card className="p-6 text-center">
-            <div className="text-4xl font-bold text-primary mb-2">50K+</div>
-            <p className="text-sm text-muted-foreground">Active Learners</p>
-          </Card>
-          <Card className="p-6 text-center">
-            <div className="text-4xl font-bold text-primary mb-2">1M+</div>
-            <p className="text-sm text-muted-foreground">Lessons Completed</p>
-          </Card>
-          <Card className="p-6 text-center">
-            <div className="text-4xl font-bold text-primary mb-2">150+</div>
-            <p className="text-sm text-muted-foreground">Countries Reached</p>
-          </Card>
-          <Card className="p-6 text-center">
-            <div className="text-4xl font-bold text-primary mb-2">4.9/5</div>
-            <p className="text-sm text-muted-foreground">User Rating</p>
-          </Card>
-        </div>
+        {/* Stats section removed */}
       </div>
     </div>
   );
