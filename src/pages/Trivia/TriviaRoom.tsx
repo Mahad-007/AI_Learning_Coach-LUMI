@@ -36,6 +36,8 @@ export default function TriviaRoom() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("general");
   const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const [friends, setFriends] = useState<any[]>([]);
+  const [inviting, setInviting] = useState<string | null>(null);
 
   const categories = [
     { value: "general", label: "General Knowledge" },
@@ -54,6 +56,8 @@ export default function TriviaRoom() {
     // Get initial room data
     loadRoomData();
     loadParticipants();
+    // Load friends with presence
+    TriviaService.listFriendsWithPresence(user.id).then(setFriends).catch(() => {});
 
     // Subscribe to room changes with better handling
     const roomChannel = supabase
@@ -326,6 +330,46 @@ export default function TriviaRoom() {
             )}
           </div>
         </Card>
+
+        {/* Friends Online - Invite */}
+        {isHost && (
+          <Card className="p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Invite Friends</h2>
+              <span className="text-muted-foreground text-sm">{friends.length} friends</span>
+            </div>
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {friends.map((f) => (
+                <Card key={f.id} className="p-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-10 h-10"><AvatarImage src={f.avatar_url || undefined} /><AvatarFallback>{(f.name||'?').charAt(0)}</AvatarFallback></Avatar>
+                    <div>
+                      <p className="font-medium">{f.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {f.presence?.status === 'online' ? 'Online' : f.presence?.status === 'away' ? 'Away' : `Last active ${new Date(f.presence?.last_active_at || 0).toLocaleTimeString()}`}
+                      </p>
+                    </div>
+                  </div>
+                  <Button size="sm" disabled={!!inviting} onClick={async ()=>{
+                    if (!roomId || !user) return;
+                    try {
+                      setInviting(f.id);
+                      await TriviaService.inviteFriend(roomId, f.id, { id: user.id, name: user.name });
+                      toast.success(`Invited ${f.name}`);
+                    } catch (e:any) {
+                      toast.error('Failed to invite',{ description: e.message});
+                    } finally {
+                      setInviting(null);
+                    }
+                  }}>Invite</Button>
+                </Card>
+              ))}
+              {friends.length === 0 && (
+                <div className="text-sm text-muted-foreground">No friends yet. Add some from Friends page.</div>
+              )}
+            </div>
+          </Card>
+        )}
 
         {/* Participants Grid */}
         <Card className="p-6 mb-6">

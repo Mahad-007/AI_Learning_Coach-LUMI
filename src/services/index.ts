@@ -15,6 +15,7 @@ export { QuizResultService } from './quizResultService';
 export { TriviaService } from './triviaService';
 export { WhiteboardService } from './whiteboardService';
 export { FriendsService } from './friendsService';
+export { NotificationsService } from './notificationsService';
 
 // Re-export types
 export type { SignupData, LoginData, AuthResponse, User } from '../types/user';

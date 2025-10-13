@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Brain, Home, BookOpen, Trophy, BarChart3, Users, User, DollarSign, Sparkles, MessageSquare, Zap, PenTool, ChevronDown } from "lucide-react";
+import { Menu, X, Brain, Home, BookOpen, Trophy, BarChart3, Users, User, DollarSign, Sparkles, MessageSquare, Zap, PenTool, ChevronDown, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -13,6 +13,7 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
+import { NotificationsService } from '@/services/notificationsService';
 import { useAuth } from "@/contexts/AuthContext";
 
 const publicNavLinks = [
@@ -48,10 +49,41 @@ const authenticatedNavLinks = [
 
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDark, setIsDark] = useState(false);
   const location = useLocation();
+  const [notifs, setNotifs] = useState<any[]>([]);
+  // Load notifications (simple polling for now)
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const list = await NotificationsService.list(10);
+        if (mounted) setNotifs(list);
+      } catch {}
+    };
+    load();
+    const id = setInterval(load, 8000);
+    return () => { mounted = false; clearInterval(id); };
+  }, []);
   const { isAuthenticated, user, logout } = useAuth();
   
   const navLinks = isAuthenticated ? authenticatedNavLinks : publicNavLinks;
+
+  // Initialize theme from localStorage or system preference
+  useEffect(() => {
+    const stored = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const dark = stored ? stored === 'dark' : prefersDark;
+    setIsDark(dark);
+    document.documentElement.classList.toggle('dark', dark);
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.classList.toggle('dark', next);
+    localStorage.setItem('theme', next ? 'dark' : 'light');
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border shadow-sm">
@@ -140,6 +172,36 @@ export const Navigation = () => {
 
           {/* Auth Section */}
           <div className="hidden md:flex items-center gap-2">
+            {/* Notifications */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <span className="sr-only">Notifications</span>
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-[10px] text-white flex items-center justify-center">
+                    {notifs.filter(n => !n.read_at).length}
+                  </span>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a6 6 0 00-6 6v3.586l-1.707 1.707A1 1 0 005 15h14a1 1 0 00.707-1.707L18 11.586V8a6 6 0 00-6-6zm0 20a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <div className="px-3 py-2 text-sm font-medium">Notifications</div>
+                {notifs.length === 0 && (
+                  <div className="px-3 py-6 text-center text-sm text-muted-foreground">No notifications</div>
+                )}
+                {notifs.map((n) => (
+                  <DropdownMenuItem key={n.id} className="flex flex-col items-start gap-1">
+                    <div className="text-sm font-medium capitalize">{n.type.replace('_',' ')}</div>
+                    <div className="text-xs text-muted-foreground break-words w-full">{n.payload && (n.payload.message || n.payload.room_code || n.payload.from_name)}</div>
+                    <div className="text-[10px] text-muted-foreground">{new Date(n.created_at).toLocaleString()}</div>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Theme toggle */}
+            <Button variant="ghost" size="icon" className="ml-1" onClick={toggleTheme} aria-label="Toggle theme">
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
             {isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -192,6 +254,14 @@ export const Navigation = () => {
           >
             {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
+      {/* Mobile Theme Toggle */}
+      <button
+        onClick={toggleTheme}
+        className="md:hidden ml-2 p-2 hover:bg-muted rounded-lg transition-colors"
+        aria-label="Toggle theme"
+      >
+        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+      </button>
         </div>
       </div>
 
