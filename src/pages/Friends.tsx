@@ -46,7 +46,7 @@ export default function Friends() {
 
   const sendInviteEmail = async (email: string) => {
     try {
-      await fetch(`${import.meta.env.VITE_EMAIL_SERVER_URL || 'http://localhost:4001'}/send-invite`, {
+      await fetch(`/api/send-invite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to: email, inviterName: user?.name, signupLink: `${window.location.origin}/signup` }),
@@ -63,7 +63,7 @@ export default function Friends() {
       
       // Send email notification
       if (receiverEmail) {
-        await fetch(`${import.meta.env.VITE_EMAIL_SERVER_URL || 'http://localhost:4001'}/send-friend-request`, {
+        await fetch(`/api/send-friend-request`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ to: receiverEmail, senderName: user?.name, link: `${window.location.origin}/friends` }),

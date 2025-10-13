@@ -58,7 +58,7 @@ app.post('/send-invite', async (req, res) => {
   }
 });
 
-const port = process.env.EMAIL_SERVER_PORT || 4001;
+const port = Number(process.env.PORT || process.env.EMAIL_SERVER_PORT || 4001);
 if (process.env.NODE_ENV !== 'test') {
   app.listen(port, () => console.log(`Email server listening on ${port}`));
 }

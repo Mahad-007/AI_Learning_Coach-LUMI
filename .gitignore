@@ -59,3 +59,4 @@ coverage
 !.env.example
 !.gitignore
 !README.md
+.vercel
