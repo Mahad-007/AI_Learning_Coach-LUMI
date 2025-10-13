@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { ChatWindow, ChatInput, ChatSidebar, LearningPrompt } from "@/components/Chat";
+import { ChatWindow, ChatInput, ChatSidebar, LearningPrompt } from "@/components/chat";
 import { Button } from "@/components/ui/button";
 import { Menu, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -56,8 +56,11 @@ export default function Chat() {
         .limit(1);
 
       if (sessions && sessions.length > 0) {
-        setCurrentSessionId(sessions[0].id);
-        await loadSessionMessages(sessions[0].id);
+        const session = sessions[0] as any;
+        if (session?.id) {
+          setCurrentSessionId(session.id);
+          await loadSessionMessages(session.id);
+        }
       } else {
         // Create a new session if none exist
         await createNewSession();
@@ -78,13 +81,14 @@ export default function Chat() {
         .insert({
           user_id: user.id,
           title: "New Chat",
-        })
+        } as any)
         .select()
         .single();
 
       if (error) throw error;
+      if (!data) throw new Error("No data returned");
 
-      setCurrentSessionId(data.id);
+      setCurrentSessionId((data as any).id);
       setMessages([]);
       toast.success("New chat started");
     } catch (error) {
@@ -140,10 +144,13 @@ export default function Chat() {
 
   const updateSessionTitle = async (sessionId: string, title: string) => {
     try {
-      await supabase
+      const { error } = await supabase
         .from("chat_sessions")
+        // @ts-ignore - Supabase type issue with chat_sessions table
         .update({ title })
         .eq("id", sessionId);
+      
+      if (error) throw error;
     } catch (error) {
       console.error("Failed to update session title:", error);
     }
@@ -160,12 +167,12 @@ export default function Chat() {
           session_id: currentSessionId,
           role: role,
           message: content,
-        })
+        } as any)
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return data || null;
     } catch (error) {
       console.error("Failed to save message:", error);
       return null;
@@ -196,7 +203,7 @@ export default function Chat() {
     try {
       // Save user message to database
       const savedUserMsg = await saveMessage("user", content);
-      if (savedUserMsg) {
+      if (savedUserMsg?.id) {
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === userMessage.id ? { ...msg, id: savedUserMsg.id } : msg

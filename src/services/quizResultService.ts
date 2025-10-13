@@ -42,11 +42,11 @@ export class QuizResultService {
       console.log(`[QuizResultService] Quiz XP calculation:`, {
         difficulty: quizData.difficulty,
         correct: quizData.correctAnswers,
-        total: quizData.totalQuestions,
+        totalQuestions: quizData.totalQuestions,
         basePerQuestion: xpPerCorrect,
         earned: earnedXP,
         perfectBonus,
-        total: xpEarned
+        totalXP: xpEarned
       });
 
       // Award XP using dedicated service
