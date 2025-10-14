@@ -32,6 +32,7 @@ import TermsOfService from "./pages/TermsOfService";
 import HelpCenter from "./pages/HelpCenter";
 import FAQ from "./pages/FAQ";
 import AIEducationFuture from "./pages/blog/AIEducationFuture";
+import Friends from "./pages/Friends";
 import LearningStrategies from "./pages/blog/LearningStrategies";
 import GamificationLearning from "./pages/blog/GamificationLearning";
 import TimeManagement from "./pages/blog/TimeManagement";
@@ -61,6 +62,7 @@ const AppLayout = () => {
                 <Route path="/trivia/game/:roomId" element={<ProtectedRoute><TriviaGame /></ProtectedRoute>} />
                 <Route path="/trivia/leaderboard/:roomId" element={<ProtectedRoute><TriviaLeaderboard /></ProtectedRoute>} />
                 <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+                <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
                 <Route path="/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/whiteboard" element={<ProtectedRoute><Whiteboard /></ProtectedRoute>} />

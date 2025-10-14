@@ -263,12 +263,12 @@ export const WhiteboardSessionComponent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
+    <div className="min-h-screen bg-background pt-20">
       <div className="container mx-auto p-6 max-w-7xl">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold">Interactive Whiteboard</h1>
-            <p className="text-gray-600">Create collaborative learning sessions with AI assistance</p>
+            <p className="text-muted-foreground">Create collaborative learning sessions with AI assistance</p>
             {/* Debug info removed */}
           </div>
           <div className="flex space-x-2">
@@ -445,7 +445,7 @@ export const WhiteboardSessionComponent: React.FC = () => {
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -458,28 +458,28 @@ export const WhiteboardSessionComponent: React.FC = () => {
                       {session.is_active ? 'Active' : 'Inactive'}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600">{session.topic}</p>
+                  <p className="text-sm text-muted-foreground">{session.topic}</p>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex items-center text-sm text-gray-500">
+                    <div className="flex items-center text-sm text-muted-foreground">
                       <Users className="h-4 w-4 mr-2" />
                       {session.current_participants}/{session.max_participants} participants
                     </div>
-                    <div className="flex items-center text-sm text-gray-500">
+                    <div className="flex items-center text-sm text-muted-foreground">
                       <Clock className="h-4 w-4 mr-2" />
                       {formatDate(session.created_at)}
                     </div>
-                    <div className="flex items-center text-sm text-gray-500">
+                    <div className="flex items-center text-sm text-muted-foreground">
                       <span className="mr-2">Host:</span>
                       <span className="font-medium">{session.host_name}</span>
                     </div>
                     
                     {session.room_code && (
-                      <div className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
+                      <div className="flex items-center justify-between bg-muted p-2 rounded-lg">
                         <div className="text-sm">
-                          <span className="text-gray-500">Join Code:</span>
-                          <span className="ml-2 font-bold text-lg tracking-widest">{session.room_code}</span>
+                          <span className="text-muted-foreground">Join Code:</span>
+                          <span className="ml-2 font-bold text-lg tracking-widest text-foreground">{session.room_code}</span>
                         </div>
                         <Button
                           size="sm"
@@ -544,11 +544,11 @@ export const WhiteboardSessionComponent: React.FC = () => {
 
         {sessions.length === 0 && !loading && (
           <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
+            <div className="text-muted-foreground mb-4">
               <Users className="h-12 w-12 mx-auto" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No sessions yet</h3>
-            <p className="text-gray-500 mb-4">Create your first interactive whiteboard session to start teaching!</p>
+            <h3 className="text-lg font-medium text-foreground mb-2">No sessions yet</h3>
+            <p className="text-muted-foreground mb-4">Create your first interactive whiteboard session to start teaching!</p>
             <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Your First Session
@@ -566,13 +566,13 @@ export const WhiteboardSessionComponent: React.FC = () => {
               {activeSession?.room_code ? (
                 <>
                   <div className="text-center">
-                    <p className="text-sm text-gray-600 mb-4">
+                    <p className="text-sm text-muted-foreground mb-4">
                       Share this code with your friends to let them join your whiteboard session:
                     </p>
-                    <div className="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300">
-                      <p className="text-xs text-gray-500 mb-2">Session Code</p>
+                    <div className="bg-muted p-4 rounded-lg border-2 border-dashed border-border">
+                      <p className="text-xs text-muted-foreground mb-2">Session Code</p>
                       <div className="flex items-center justify-center gap-3">
-                        <span className="text-3xl font-bold tracking-widest text-gray-900">
+                        <span className="text-3xl font-bold tracking-widest text-foreground">
                           {activeSession.room_code}
                         </span>
                         <Button
@@ -589,7 +589,7 @@ export const WhiteboardSessionComponent: React.FC = () => {
                         </Button>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-3">
+                    <p className="text-xs text-muted-foreground mt-3">
                       Friends can use the "Join by Code" button to enter this code
                     </p>
                   </div>

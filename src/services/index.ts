@@ -17,6 +17,8 @@ export { WhiteboardService } from './whiteboardService';
 export { AchievementSystem } from './achievementSystem';
 export { AchievementsService } from './achievementsService';
 export { XPUpdateService } from './xpUpdateService';
+export { FriendsService } from './friendsService';
+export { NotificationsService } from './notificationsService';
 
 // Re-export types
 export type { SignupData, LoginData, AuthResponse, User } from '../types/user';
