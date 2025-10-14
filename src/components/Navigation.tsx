@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { NotificationsService } from '@/services/notificationsService';
 import { useAuth } from "@/contexts/AuthContext";
+import { FriendsDrawer } from '@/components/learn/FriendsDrawer';
 
 const publicNavLinks = [
   { name: "Home", path: "/", icon: Home, type: "link" },
@@ -66,6 +67,7 @@ export const Navigation = () => {
     return () => { mounted = false; clearInterval(id); };
   }, []);
   const { isAuthenticated, user, logout } = useAuth();
+  const [friendsOpen, setFriendsOpen] = useState(false);
   
   const navLinks = isAuthenticated ? authenticatedNavLinks : publicNavLinks;
 
@@ -223,6 +225,10 @@ export const Navigation = () => {
                       Profile
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setFriendsOpen(true)} className="cursor-pointer">
+                    <Users className="w-4 h-4 mr-2" />
+                    My Friends
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/leaderboard" className="cursor-pointer">
                       <Trophy className="w-4 h-4 mr-2" />
@@ -354,6 +360,7 @@ export const Navigation = () => {
           </div>
         </div>
       )}
+      <FriendsDrawer isOpen={friendsOpen} onClose={() => setFriendsOpen(false)} />
     </nav>
   );
 };

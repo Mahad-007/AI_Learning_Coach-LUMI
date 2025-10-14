@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { FriendsService } from '@/services/friendsService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 export default function Friends() {
   const { user } = useAuth();
@@ -88,6 +89,16 @@ export default function Friends() {
       await refresh();
     } catch (error: any) {
       toast({ title: "Failed to respond", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const unfriend = async (friendId: string) => {
+    try {
+      await FriendsService.unfriend(friendId);
+      toast({ title: 'Unfriended', description: 'This user has been removed from your friends.' });
+      await refresh();
+    } catch (error: any) {
+      toast({ title: 'Failed to unfriend', description: error.message, variant: 'destructive' });
     }
   };
 
@@ -196,8 +207,17 @@ export default function Friends() {
         <h2 className="text-xl font-semibold mb-3">Your Friends</h2>
         <div className="grid md:grid-cols-2 gap-3">
           {friends.map((f) => (
-            <div key={f.id} className="p-3 rounded border bg-card">{f.name} {f.username ? `(@${f.username})` : ''}</div>
+            <div key={f.id} className="p-3 rounded border bg-card flex items-center justify-between gap-3">
+              <div>
+                <div className="font-medium">{f.name} {f.username ? `(@${f.username})` : ''}</div>
+                <Badge variant={f.status === 'online' ? 'default' : 'secondary'}>{f.status || 'offline'}</Badge>
+              </div>
+              <Button size="sm" variant="destructive" onClick={() => unfriend(f.id)}>Unfriend</Button>
+            </div>
           ))}
+          {friends.length === 0 && (
+            <div className="text-sm text-muted-foreground">No friends yet.</div>
+          )}
         </div>
       </Card>
     </div>

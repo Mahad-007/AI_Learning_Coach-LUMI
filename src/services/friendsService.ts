@@ -85,15 +85,13 @@ export const FriendsService = {
     }
   },
 
-  async listFriends(): Promise<FriendUser[]> {
+  async listFriends(): Promise<(FriendUser & { status?: string })[]> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
-    const { data, error } = await supabase
-      .from('friends')
-      .select('friend_id, users!friends_friend_id_fkey(id,name,username,avatar_url)')
-      .eq('user_id', user.id);
+    // presence-aware via RPC
+    const { data, error } = await supabase.rpc('get_friends_with_presence', { p_user_id: user.id });
     if (error) throw error;
-    return (data || []).map((row: any) => row.users);
+    return (data || []).map((r: any) => ({ id: r.friend_id, name: r.name, username: r.username, avatar_url: r.avatar_url, status: r.status }));
   },
 
   async listRequests(): Promise<{ sent: FriendRequest[]; received: FriendRequest[] }> {
@@ -120,6 +118,11 @@ export const FriendsService = {
     ] as any);
     
     return { sent: sent || [], received: received || [] };
+  },
+
+  async unfriend(friendId: string) {
+    const { error } = await supabase.rpc('unfriend_friend', { p_friend_id: friendId });
+    if (error) throw error;
   },
 };
 
