@@ -56,7 +56,7 @@ export default function Dashboard() {
             Welcome back, <span className="bg-gradient-primary bg-clip-text text-transparent">{stats.user.name}!</span>
           </h1>
           <p className="text-muted-foreground text-lg">
-            "The expert in anything was once a beginner." - Keep going! 💪
+            "The expert in anything was once a beginner." - Keep going! 
           </p>
         </div>
 
