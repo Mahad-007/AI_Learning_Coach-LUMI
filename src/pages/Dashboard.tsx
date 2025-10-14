@@ -51,91 +51,91 @@ export default function Dashboard() {
     <div className="min-h-screen pt-20 pb-12">
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="mb-8" data-aos="fade-down">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">
+        <div className="mb-6 sm:mb-8" data-aos="fade-down">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
             Welcome back, <span className="bg-gradient-primary bg-clip-text text-transparent">{stats.user.name}!</span>
           </h1>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-sm sm:text-base md:text-lg">
             "The expert in anything was once a beginner." - Keep going! 
           </p>
         </div>
 
         {/* XP Progress Bar */}
-        <Card className="p-6 mb-8" data-aos="fade-up">
+        <Card className="p-4 sm:p-6 mb-6 sm:mb-8" data-aos="fade-up">
           <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Level {stats.xp.level}</p>
-              <p className="text-2xl font-bold">{stats.xp.total.toLocaleString()} / {stats.xp.xp_for_next_level.toLocaleString()} XP</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm text-muted-foreground">Level {stats.xp.level}</p>
+              <p className="text-lg sm:text-2xl font-bold truncate">{stats.xp.total.toLocaleString()} / {stats.xp.xp_for_next_level.toLocaleString()} XP</p>
             </div>
-            <Trophy className="w-10 h-10 text-primary" />
+            <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-primary shrink-0 ml-2" />
           </div>
-          <Progress value={stats.xp.progress_percentage} className="h-3" />
-          <p className="text-sm text-muted-foreground mt-2">{(stats.xp.xp_for_next_level - stats.xp.total).toLocaleString()} XP to next level</p>
+          <Progress value={stats.xp.progress_percentage} className="h-2 sm:h-3" />
+          <p className="text-xs sm:text-sm text-muted-foreground mt-2">{(stats.xp.xp_for_next_level - stats.xp.total).toLocaleString()} XP to next level</p>
         </Card>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-          <Card className="p-6 hover:shadow-lg transition-all duration-300" data-aos="zoom-in">
-            <TrendingUp className="w-8 h-8 mb-3 text-primary" />
-            <p className="text-2xl font-bold mb-1">{stats.xp.total.toLocaleString()}</p>
-            <p className="text-sm text-muted-foreground">Total XP</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <Card className="p-4 sm:p-6 hover:shadow-lg transition-all duration-300" data-aos="zoom-in">
+            <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 mb-2 sm:mb-3 text-primary" />
+            <p className="text-xl sm:text-2xl font-bold mb-1">{stats.xp.total.toLocaleString()}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Total XP</p>
           </Card>
           
-          <Card className="p-6 hover:shadow-lg transition-all duration-300" data-aos="zoom-in" data-aos-delay={100}>
-            <BookOpen className="w-8 h-8 mb-3 text-secondary" />
-            <p className="text-2xl font-bold mb-1">{stats.lessons.completed}</p>
-            <p className="text-sm text-muted-foreground">Lessons Completed</p>
+          <Card className="p-4 sm:p-6 hover:shadow-lg transition-all duration-300" data-aos="zoom-in" data-aos-delay={100}>
+            <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 mb-2 sm:mb-3 text-secondary" />
+            <p className="text-xl sm:text-2xl font-bold mb-1">{stats.lessons.completed}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Lessons Completed</p>
           </Card>
           
-          <Card className="p-6 hover:shadow-lg transition-all duration-300" data-aos="zoom-in" data-aos-delay={200}>
-            <Award className="w-8 h-8 mb-3 text-accent" />
-            <p className="text-2xl font-bold mb-1">{stats.badges.total}</p>
-            <p className="text-sm text-muted-foreground">Badges Earned</p>
+          <Card className="p-4 sm:p-6 hover:shadow-lg transition-all duration-300 col-span-2 md:col-span-1" data-aos="zoom-in" data-aos-delay={200}>
+            <Award className="w-6 h-6 sm:w-8 sm:h-8 mb-2 sm:mb-3 text-accent" />
+            <p className="text-xl sm:text-2xl font-bold mb-1">{stats.badges.total}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Badges Earned</p>
           </Card>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Link to="/chat">
-            <Card className="p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50" data-aos="fade-up">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg group-hover:scale-110 transition-transform">
-                  <MessageSquare className="w-6 h-6 text-white" />
+            <Card className="p-4 sm:p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50" data-aos="fade-up">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg group-hover:scale-110 transition-transform shrink-0">
+                  <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-lg mb-1">AI Chat Coach</h3>
-                  <p className="text-sm text-muted-foreground">Get personalized help</p>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-base sm:text-lg mb-1">AI Chat Coach</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Get personalized help</p>
                 </div>
               </div>
             </Card>
           </Link>
 
           <Link to="/quiz">
-            <Card className="p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 hover:border-purple-500/50" data-aos="fade-up" data-aos-delay={100}>
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg group-hover:scale-110 transition-transform">
-                  <img src="/logo.png" alt="Lumi Logo" className="w-6 h-6" />
+            <Card className="p-4 sm:p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 hover:border-purple-500/50" data-aos="fade-up" data-aos-delay={100}>
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg group-hover:scale-110 transition-transform shrink-0">
+                  <img src="/logo.png" alt="Lumi Logo" className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-lg mb-1">Take a Quiz</h3>
-                  <p className="text-sm text-muted-foreground">Test your knowledge</p>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-base sm:text-lg mb-1">Take a Quiz</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Test your knowledge</p>
                 </div>
               </div>
             </Card>
           </Link>
 
           <Link to="/trivia">
-            <Card className="p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 hover:border-amber-500/50 relative" data-aos="fade-up" data-aos-delay={200}>
+            <Card className="p-4 sm:p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 hover:border-amber-500/50 relative" data-aos="fade-up" data-aos-delay={200}>
               <div className="absolute -top-2 -right-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
                 NEW
               </div>
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg group-hover:scale-110 transition-transform">
-                  <Zap className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg group-hover:scale-110 transition-transform shrink-0">
+                  <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-lg mb-1">Trivia Battle</h3>
-                  <p className="text-sm text-muted-foreground">Compete with others</p>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-base sm:text-lg mb-1">Trivia Battle</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Compete with others</p>
                 </div>
               </div>
             </Card>
@@ -147,8 +147,8 @@ export default function Dashboard() {
           {/* Ongoing Lessons */}
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-4" data-aos="fade-right">
-              <h2 className="text-2xl font-bold">Continue Learning</h2>
-              <Button variant="ghost">View All</Button>
+              <h2 className="text-xl sm:text-2xl font-bold">Continue Learning</h2>
+              <Button variant="ghost" size="sm" className="hidden sm:flex">View All</Button>
             </div>
 
             <div className="space-y-4">
@@ -156,28 +156,28 @@ export default function Dashboard() {
                 stats.recent_activity.slice(0, 3).map((activity, index) => (
                   <Card
                     key={index}
-                    className="p-6 hover:shadow-lg transition-all duration-300 group"
+                    className="p-4 sm:p-6 hover:shadow-lg transition-all duration-300 group"
                     data-aos="fade-up"
                     data-aos-delay={index * 100}
                   >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold mb-2">{activity.description}</h3>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-start justify-between gap-2 sm:gap-4 mb-3 sm:mb-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base sm:text-lg font-semibold mb-2">{activity.description}</h3>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {new Date(activity.timestamp).toLocaleString()}
+                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                            <span className="truncate">{new Date(activity.timestamp).toLocaleString()}</span>
                           </span>
                           {activity.xp_gained > 0 && (
                             <span className="flex items-center gap-1">
-                              <TrendingUp className="w-4 h-4" />
+                              <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                               +{activity.xp_gained} XP
                             </span>
                           )}
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="group-hover:bg-primary/10">
-                        <ArrowRight className="w-5 h-5" />
+                      <Button variant="ghost" size="icon" className="group-hover:bg-primary/10 shrink-0">
+                        <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                       </Button>
                     </div>
                   </Card>

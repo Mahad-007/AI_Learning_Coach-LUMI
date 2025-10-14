@@ -290,17 +290,17 @@ export default function Profile() {
     <div className="min-h-screen pt-24 pb-16 px-4 animate-in fade-in duration-500">
       <div className="container mx-auto max-w-6xl">
         {/* Profile Header Card */}
-        <Card className="p-6 md:p-8 mb-8 relative overflow-hidden transition-all duration-300 hover:shadow-lg">
+        <Card className="p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 relative overflow-hidden transition-all duration-300 hover:shadow-lg">
           {/* Background gradient */}
           <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 opacity-50" />
           
-          <div className="relative flex flex-col md:flex-row items-center gap-6">
+          <div className="relative flex flex-col md:flex-row items-center gap-4 sm:gap-6">
             {/* Avatar Section */}
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary rounded-full blur-xl opacity-30 group-hover:opacity-50 transition-opacity" />
-              <Avatar className="relative w-32 h-32 border-4 border-primary/20 shadow-xl transition-all duration-300 hover:scale-105">
+              <Avatar className="relative w-24 h-24 sm:w-32 sm:h-32 border-4 border-primary/20 shadow-xl transition-all duration-300 hover:scale-105">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="text-4xl bg-gradient-to-br from-primary to-secondary text-white">
+                <AvatarFallback className="text-3xl sm:text-4xl bg-gradient-to-br from-primary to-secondary text-white">
                   {user.name.charAt(0)}
                 </AvatarFallback>
               </Avatar>
@@ -308,78 +308,81 @@ export default function Profile() {
                 onClick={() => setAvatarDialogOpen(true)}
                 className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300"
               >
-                <Camera className="w-8 h-8 text-white" />
+                <Camera className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </button>
             </div>
             
             {/* User Info Section */}
-            <div className="flex-1 text-center md:text-left space-y-3">
+            <div className="flex-1 text-center md:text-left space-y-2 sm:space-y-3 min-w-0 w-full">
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold mb-1 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent animate-in slide-in-from-bottom duration-500">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent animate-in slide-in-from-bottom duration-500">
                   {user.name}
                 </h1>
                 {user.username && (
-                  <p className="text-muted-foreground font-medium">@{user.username}</p>
+                  <p className="text-sm sm:text-base text-muted-foreground font-medium truncate">@{user.username}</p>
                 )}
               </div>
 
               {user.bio && (
-                <p className="text-sm md:text-base text-muted-foreground max-w-md mx-auto md:mx-0">
+                <p className="text-xs sm:text-sm md:text-base text-muted-foreground max-w-md mx-auto md:mx-0 line-clamp-2">
                   {user.bio}
                 </p>
               )}
               
-              <div className="flex items-center gap-2 text-muted-foreground justify-center md:justify-start">
-                <Mail className="w-4 h-4" />
-                <span className="text-sm">{user.email}</span>
+              <div className="flex items-center gap-2 text-muted-foreground justify-center md:justify-start overflow-hidden">
+                <Mail className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                <span className="text-xs sm:text-sm truncate">{user.email}</span>
               </div>
 
               {user.learning_mode && (
                 <div className="flex items-center gap-2 text-primary justify-center md:justify-start">
                   {getLearningModeIcon(user.learning_mode)}
-                  <span className="text-sm font-medium">
+                  <span className="text-xs sm:text-sm font-medium">
                     Preferred: {getLearningModeLabel(user.learning_mode)}
                   </span>
                 </div>
               )}
               
               {/* Stats Row */}
-              <div className="flex gap-6 justify-center md:justify-start flex-wrap pt-2">
+              <div className="flex gap-4 sm:gap-6 justify-center md:justify-start flex-wrap pt-2">
                 <div className="text-center transition-transform hover:scale-110 duration-300">
-                  <p className="text-2xl md:text-3xl font-bold text-primary flex items-center gap-1">
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-primary flex items-center gap-1 justify-center">
                     {user.level}
-                    <Sparkles className="w-5 h-5" />
+                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
                   </p>
-                  <p className="text-xs text-muted-foreground">Level</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Level</p>
                 </div>
                 <div className="text-center transition-transform hover:scale-110 duration-300">
-                  <p className="text-2xl md:text-3xl font-bold text-secondary">{user.xp}</p>
-                  <p className="text-xs text-muted-foreground">Total XP</p>
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-secondary">{user.xp}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Total XP</p>
                 </div>
                 <div className="text-center transition-transform hover:scale-110 duration-300">
-                  <p className="text-2xl md:text-3xl font-bold text-accent">{badges.length}</p>
-                  <p className="text-xs text-muted-foreground">Badges</p>
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-accent">{badges.length}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Badges</p>
                 </div>
               </div>
             </div>
 
             {/* Actions */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-row md:flex-col gap-2 w-full md:w-auto">
               <Button 
                 variant={isEditMode ? "default" : "outline"} 
                 onClick={handleEditToggle}
-                className="transition-all duration-300"
+                className="transition-all duration-300 flex-1 md:flex-none text-xs sm:text-sm"
+                size="sm"
               >
                 {isEditMode ? "Cancel" : (
                   <>
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit Profile
+                    <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Edit Profile</span>
+                    <span className="sm:hidden">Edit</span>
                   </>
                 )}
               </Button>
-              <Button variant="outline" onClick={handleLogout} className="transition-all duration-300 hover:bg-destructive hover:text-destructive-foreground">
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
+              <Button variant="outline" onClick={handleLogout} className="transition-all duration-300 hover:bg-destructive hover:text-destructive-foreground flex-1 md:flex-none text-xs sm:text-sm" size="sm">
+                <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Logout</span>
+                <span className="sm:hidden">Logout</span>
               </Button>
             </div>
           </div>
@@ -571,22 +574,22 @@ export default function Profile() {
         )}
 
         {/* Profile Tabs */}
-        <Tabs defaultValue="stats" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto gap-2 bg-card p-2">
-            <TabsTrigger value="stats" className="transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <BarChart3 className="w-4 h-4 mr-2" />
+        <Tabs defaultValue="stats" className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full grid-cols-4 h-auto gap-1 sm:gap-2 bg-card p-1 sm:p-2">
+            <TabsTrigger value="stats" className="transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm px-2 sm:px-3 py-2">
+              <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
               <span className="hidden sm:inline">Stats</span>
             </TabsTrigger>
-            <TabsTrigger value="achievements" className="transition-all data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
-              <Award className="w-4 h-4 mr-2" />
+            <TabsTrigger value="achievements" className="transition-all data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground text-xs sm:text-sm px-2 sm:px-3 py-2">
+              <Award className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
               <span className="hidden sm:inline">Achievements</span>
             </TabsTrigger>
-            <TabsTrigger value="leaderboard" className="transition-all data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
-              <Trophy className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Leaderboard</span>
+            <TabsTrigger value="leaderboard" className="transition-all data-[state=active]:bg-accent data-[state=active]:text-accent-foreground text-xs sm:text-sm px-2 sm:px-3 py-2">
+              <Trophy className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Board</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Settings className="w-4 h-4 mr-2" />
+            <TabsTrigger value="settings" className="transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm px-2 sm:px-3 py-2">
+              <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
               <span className="hidden sm:inline">Settings</span>
             </TabsTrigger>
           </TabsList>

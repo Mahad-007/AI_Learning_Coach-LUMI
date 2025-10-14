@@ -91,28 +91,28 @@ export default function Leaderboard() {
 
             {/* Top 3 Podium - Show if at least 1 user and not on friends tab */}
             {selectedTab !== "friends" && currentLeaderboard.length > 0 && (
-              <div className="grid grid-cols-3 gap-4 mb-8" data-aos="zoom-in">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8" data-aos="zoom-in">
                 {/* 2nd Place - only show if exists */}
                 {currentLeaderboard[1] && (
-                  <div className="text-center pt-12">
-                    <Card className="p-6 hover:shadow-lg transition-all duration-300">
+                  <div className="text-center pt-8 sm:pt-12">
+                    <Card className="p-3 sm:p-6 hover:shadow-lg transition-all duration-300">
                       <div className="mb-2 flex justify-center">
                         {currentLeaderboard[1].avatar_url ? (
-                          <img src={currentLeaderboard[1].avatar_url} alt="" className="w-16 h-16 rounded-full" />
+                          <img src={currentLeaderboard[1].avatar_url} alt="" className="w-12 h-12 sm:w-16 sm:h-16 rounded-full" />
                         ) : (
-                          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-secondary/20 to-secondary/30 flex items-center justify-center text-2xl font-bold text-secondary">
+                          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-secondary/20 to-secondary/30 flex items-center justify-center text-xl sm:text-2xl font-bold text-secondary">
                             {currentLeaderboard[1].user_name.charAt(0).toUpperCase()}
                           </div>
                         )}
                       </div>
-                      <div className="text-3xl mb-2">🥈</div>
-                      <p className="font-bold mb-1">{currentLeaderboard[1].user_name}</p>
-                      <p className="text-sm text-muted-foreground mb-2">
+                      <div className="text-2xl sm:text-3xl mb-2">🥈</div>
+                      <p className="font-bold mb-1 text-xs sm:text-base truncate">{currentLeaderboard[1].user_name}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-2">
                         Level {currentLeaderboard[1].level}
                       </p>
-                      <div className="inline-flex items-center gap-1 bg-secondary/20 rounded-full px-3 py-1">
-                        <TrendingUp className="w-4 h-4 text-secondary" />
-                        <span className="text-sm font-medium">
+                      <div className="inline-flex items-center gap-1 bg-secondary/20 rounded-full px-2 sm:px-3 py-1">
+                        <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-secondary" />
+                        <span className="text-xs sm:text-sm font-medium">
                           {getXPValue(currentLeaderboard[1]).toLocaleString()}
                         </span>
                       </div>

@@ -31,50 +31,50 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden py-8">
       {/* Animated Background */}
       <div className="absolute inset-0 bg-gradient-hero opacity-5"></div>
       <div className="absolute top-20 left-10 w-32 h-32 bg-primary/20 rounded-full blur-3xl animate-float"></div>
       <div className="absolute bottom-20 right-10 w-40 h-40 bg-secondary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
       <div className="absolute top-40 right-20 w-24 h-24 bg-accent/20 rounded-full blur-2xl animate-float" style={{ animationDelay: "2s" }}></div>
 
-      <Card className="w-full max-w-md p-8 relative z-10 shadow-2xl">
-        <div className="text-center mb-8">
-          <div className="inline-flex p-3 bg-gradient-primary rounded-xl shadow-glow mb-4">
-            <img src="/logo.png" alt="Lumi Logo" className="w-8 h-8" />
+      <Card className="w-full max-w-md p-6 sm:p-8 relative z-10 shadow-2xl">
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="inline-flex p-2 sm:p-3 bg-gradient-primary rounded-xl shadow-glow mb-3 sm:mb-4">
+            <img src="/logo.png" alt="Lumi Logo" className="w-6 h-6 sm:w-8 sm:h-8" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
-          <p className="text-muted-foreground">Sign in to continue your learning journey</p>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Welcome Back</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Sign in to continue your learning journey</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-sm sm:text-base">Email</Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+              <Mail className="absolute left-3 top-3 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
               <Input
                 id="email"
                 type="email"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10"
+                className="pl-9 sm:pl-10 text-sm sm:text-base"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="text-sm sm:text-base">Password</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+              <Lock className="absolute left-3 top-3 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
               <Input
                 id="password"
                 type="password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10"
+                className="pl-9 sm:pl-10 text-sm sm:text-base"
                 required
               />
             </div>

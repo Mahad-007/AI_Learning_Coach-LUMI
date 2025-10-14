@@ -324,7 +324,8 @@ export default function Chat() {
       <div
         className={cn(
           "bg-card/50 backdrop-blur-lg border-r border-border/50 transition-all duration-300 overflow-hidden",
-          sidebarOpen ? "w-80" : "w-0"
+          "fixed inset-y-0 left-0 z-40 pt-16 md:relative md:pt-0 md:z-auto",
+          sidebarOpen ? "w-full md:w-80" : "w-0"
         )}
       >
         {sidebarOpen && (
@@ -339,22 +340,30 @@ export default function Chat() {
         )}
       </div>
 
+      {/* Overlay for mobile sidebar */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col w-full md:w-auto">
         {/* Header */}
-        <div className="border-b border-border/50 p-4 flex items-center gap-4 bg-card/30 backdrop-blur-sm">
+        <div className="border-b border-border/50 p-3 sm:p-4 flex items-center gap-2 sm:gap-4 bg-card/30 backdrop-blur-sm">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="hover:bg-primary/10"
+            className="hover:bg-primary/10 shrink-0"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
-          <div>
-            <h1 className="font-bold text-lg">Lumi</h1>
-            <p className="text-xs text-muted-foreground">
-              Gemini 2.0 Flash • Real-time streaming • Markdown support
+          <div className="min-w-0 flex-1">
+            <h1 className="font-bold text-base sm:text-lg truncate">Lumi</h1>
+            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
+              Gemini 2.0 Flash • Real-time streaming
             </p>
           </div>
         </div>

@@ -277,46 +277,46 @@ Return ONLY valid JSON in this exact format:
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Option 1: Quiz from Learning */}
-            <Card className="p-8 hover:shadow-xl transition-all cursor-pointer group border-2 hover:border-primary/50 animate-in fade-in slide-in-from-left duration-500">
-              <div className="text-center space-y-4">
-                <div className="inline-flex p-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full group-hover:scale-110 transition-transform">
-                  <MessageSquare className="w-10 h-10 text-white" />
+            <Card className="p-6 sm:p-8 hover:shadow-xl transition-all cursor-pointer group border-2 hover:border-primary/50 animate-in fade-in slide-in-from-left duration-500">
+              <div className="text-center space-y-3 sm:space-y-4">
+                <div className="inline-flex p-3 sm:p-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full group-hover:scale-110 transition-transform">
+                  <MessageSquare className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                 </div>
-                <h2 className="text-2xl font-bold">Quiz from Your Learning</h2>
-                <p className="text-muted-foreground">
+                <h2 className="text-xl sm:text-2xl font-bold">Quiz from Your Learning</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">
                   Generate a personalized quiz based on your recent AI chat conversations
                 </p>
-                <div className="pt-4 space-y-2 text-sm text-muted-foreground">
+                <div className="pt-2 sm:pt-4 space-y-2 text-xs sm:text-sm text-muted-foreground">
                   <p>✓ Personalized to your learning</p>
                   <p>✓ Based on what you discussed</p>
                   <p>✓ Tests your understanding</p>
                 </div>
                 <Button 
                   onClick={handleBackToChat}
-                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-sm sm:text-base"
                   size="lg"
                 >
-                  <MessageSquare className="w-5 h-5 mr-2" />
+                  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Go to Chat to Generate
                 </Button>
               </div>
             </Card>
 
             {/* Option 2: Quiz by Topic */}
-            <Card className="p-8 border-2 border-primary/30 relative overflow-hidden animate-in fade-in slide-in-from-right duration-500">
-              <div className="absolute top-0 right-0 bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+            <Card className="p-6 sm:p-8 border-2 border-primary/30 relative overflow-hidden animate-in fade-in slide-in-from-right duration-500">
+              <div className="absolute top-0 right-0 bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xs font-bold px-2 sm:px-3 py-1 rounded-bl-lg">
                 POPULAR
               </div>
               
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <div className="text-center">
-                  <div className="inline-flex p-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full mb-4">
-                    <Search className="w-10 h-10 text-white" />
+                  <div className="inline-flex p-3 sm:p-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full mb-3 sm:mb-4">
+                    <Search className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                   </div>
-                  <h2 className="text-2xl font-bold mb-2">Quiz by Topic</h2>
-                  <p className="text-muted-foreground text-sm">
+                  <h2 className="text-xl sm:text-2xl font-bold mb-2">Quiz by Topic</h2>
+                  <p className="text-muted-foreground text-xs sm:text-sm">
                     Enter any topic and choose difficulty level
                   </p>
                 </div>
@@ -445,28 +445,28 @@ Return ONLY valid JSON in this exact format:
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <Card className="p-6">
-              <p className="text-sm text-muted-foreground mb-1">Score</p>
+          <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
+            <Card className="p-4 sm:p-6">
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Score</p>
               <p className={cn(
-                "text-3xl font-bold",
+                "text-2xl sm:text-3xl font-bold",
                 passed ? "text-green-500" : "text-orange-500"
               )}>
                 {percentage.toFixed(0)}%
               </p>
             </Card>
-            <Card className="p-6">
-              <p className="text-sm text-muted-foreground mb-1">Correct</p>
-              <p className="text-3xl font-bold text-primary">
+            <Card className="p-4 sm:p-6">
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Correct</p>
+              <p className="text-2xl sm:text-3xl font-bold text-primary">
                 {score / 20}/{quizData.length}
               </p>
             </Card>
-            <Card className="p-6">
-              <p className="text-sm text-muted-foreground mb-1">XP Earned</p>
-              <p className="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+            <Card className="p-4 sm:p-6">
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">XP Earned</p>
+              <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
                 +{earnedXP}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                 {selectedDifficulty} difficulty
               </p>
             </Card>

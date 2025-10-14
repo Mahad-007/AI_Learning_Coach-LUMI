@@ -116,21 +116,21 @@ export default function Friends() {
 
   return (
     <div className="container mx-auto px-4 pt-24 pb-10 max-w-5xl">
-      <h1 className="text-3xl font-bold mb-6">Find Friends</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Find Friends</h1>
 
-      <Card className="p-4 mb-8">
-        <div className="flex gap-2 items-center">
-          <Input placeholder="Search by email or username" value={query} onChange={(e) => setQuery(e.target.value)} />
-          <Button onClick={handleSearch} disabled={loading}>{loading ? "Searching..." : "Search"}</Button>
+      <Card className="p-3 sm:p-4 mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+          <Input placeholder="Search by email or username" value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1" />
+          <Button onClick={handleSearch} disabled={loading} className="w-full sm:w-auto">{loading ? "Searching..." : "Search"}</Button>
         </div>
         {result === null && query && !loading && (
           <div className="mt-4 text-sm text-muted-foreground">No user found. You can send an invitation.</div>
         )}
         {result ? (
-          <div className="mt-4 flex items-center justify-between">
-            <div>
-              <div className="font-medium">{result.name} {result.username ? `(@${result.username})` : ''}</div>
-              <div className="text-sm text-muted-foreground">{result.email}</div>
+          <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex-1 min-w-0 w-full">
+              <div className="font-medium truncate">{result.name} {result.username ? `(@${result.username})` : ''}</div>
+              <div className="text-sm text-muted-foreground truncate">{result.email}</div>
               {friendshipStatus && (
                 <div className="text-xs text-muted-foreground mt-1">
                   {friendshipStatus.isFriend && "✓ Already friends"}
@@ -143,6 +143,8 @@ export default function Friends() {
               onClick={() => sendFriendRequest(result.id, result.email)} 
               disabled={isButtonDisabled()}
               variant={friendshipStatus?.isFriend ? "secondary" : "default"}
+              className="w-full sm:w-auto shrink-0"
+              size="sm"
             >
               {getButtonText()}
             </Button>
@@ -154,21 +156,20 @@ export default function Friends() {
         ) : null}
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card className="p-4">
-          <h2 className="text-xl font-semibold mb-3">Received Requests</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <Card className="p-3 sm:p-4">
+          <h2 className="text-lg sm:text-xl font-semibold mb-3">Received Requests</h2>
           <div className="space-y-3">
             {requests.received.map((r: any) => (
-              <div key={r.id} className="flex justify-between items-center">
-                <div className="text-sm">
-                  From: {r.sender?.name || 'Unknown'} {r.sender?.username ? `(@${r.sender.username})` : ''}
-                  <br />
+              <div key={r.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div className="text-sm flex-1 min-w-0 w-full">
+                  <span className="truncate block">From: {r.sender?.name || 'Unknown'} {r.sender?.username ? `(@${r.sender.username})` : ''}</span>
                   <span className="text-xs text-muted-foreground">Status: {r.status}</span>
                 </div>
                 {r.status === 'pending' && (
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => respond(r.id, true)}>Accept</Button>
-                    <Button size="sm" variant="outline" onClick={() => respond(r.id, false)}>Decline</Button>
+                  <div className="flex gap-2 w-full sm:w-auto shrink-0">
+                    <Button size="sm" onClick={() => respond(r.id, true)} className="flex-1 sm:flex-none">Accept</Button>
+                    <Button size="sm" variant="outline" onClick={() => respond(r.id, false)} className="flex-1 sm:flex-none">Decline</Button>
                   </div>
                 )}
               </div>
@@ -179,18 +180,17 @@ export default function Friends() {
           </div>
         </Card>
 
-        <Card className="p-4">
-          <h2 className="text-xl font-semibold mb-3">Sent Requests</h2>
+        <Card className="p-3 sm:p-4">
+          <h2 className="text-lg sm:text-xl font-semibold mb-3">Sent Requests</h2>
           <div className="space-y-3">
             {requests.sent.map((r: any) => (
-              <div key={r.id} className="flex justify-between items-center">
-                <div className="text-sm">
-                  To: {r.receiver?.name || 'Unknown'} {r.receiver?.username ? `(@${r.receiver.username})` : ''}
-                  <br />
+              <div key={r.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div className="text-sm flex-1 min-w-0 w-full">
+                  <span className="truncate block">To: {r.receiver?.name || 'Unknown'} {r.receiver?.username ? `(@${r.receiver.username})` : ''}</span>
                   <span className="text-xs text-muted-foreground">Status: {r.status}</span>
                 </div>
                 {r.status === 'pending' && (
-                  <Button size="sm" variant="outline" onClick={() => FriendsService.cancelRequest(r.id).then(refresh)}>
+                  <Button size="sm" variant="outline" onClick={() => FriendsService.cancelRequest(r.id).then(refresh)} className="w-full sm:w-auto shrink-0">
                     Cancel
                   </Button>
                 )}
@@ -203,20 +203,20 @@ export default function Friends() {
         </Card>
       </div>
 
-      <Card className="p-4 mt-8">
-        <h2 className="text-xl font-semibold mb-3">Your Friends</h2>
-        <div className="grid md:grid-cols-2 gap-3">
+      <Card className="p-3 sm:p-4 mt-6 sm:mt-8">
+        <h2 className="text-lg sm:text-xl font-semibold mb-3">Your Friends</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {friends.map((f) => (
-            <div key={f.id} className="p-3 rounded border bg-card flex items-center justify-between gap-3">
-              <div>
-                <div className="font-medium">{f.name} {f.username ? `(@${f.username})` : ''}</div>
-                <Badge variant={f.status === 'online' ? 'default' : 'secondary'}>{f.status || 'offline'}</Badge>
+            <div key={f.id} className="p-3 rounded border bg-card flex items-center justify-between gap-2 sm:gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">{f.name} {f.username ? `(@${f.username})` : ''}</div>
+                <Badge variant={f.status === 'online' ? 'default' : 'secondary'} className="text-xs">{f.status || 'offline'}</Badge>
               </div>
-              <Button size="sm" variant="destructive" onClick={() => unfriend(f.id)}>Unfriend</Button>
+              <Button size="sm" variant="destructive" onClick={() => unfriend(f.id)} className="shrink-0 text-xs">Unfriend</Button>
             </div>
           ))}
           {friends.length === 0 && (
-            <div className="text-sm text-muted-foreground">No friends yet.</div>
+            <div className="text-sm text-muted-foreground col-span-full">No friends yet.</div>
           )}
         </div>
       </Card>

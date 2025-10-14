@@ -92,14 +92,14 @@ export const Navigation = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* BETA Label */}
-          <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-2 py-1 rounded-md shadow-sm">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-1.5 sm:px-2 py-1 rounded-md shadow-sm">
               BETA
             </div>
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 group">
-              <img src="/logo.png" alt="Lumi Logo" className="w-16 h-16" />
-              <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            <Link to="/" className="flex items-center gap-1 sm:gap-2 group">
+              <img src="/logo.png" alt="Lumi Logo" className="w-12 h-12 sm:w-16 sm:h-16" />
+              <span className="text-lg sm:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                 Lumi
               </span>
             </Link>
@@ -257,21 +257,44 @@ export const Navigation = () => {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
-          >
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-      {/* Mobile Theme Toggle */}
-      <button
-        onClick={toggleTheme}
-        className="md:hidden ml-2 p-2 hover:bg-muted rounded-lg transition-colors"
-        aria-label="Toggle theme"
-      >
-        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-      </button>
+          {/* Mobile Actions */}
+          <div className="flex md:hidden items-center gap-1">
+            {/* Notifications for mobile */}
+            {isAuthenticated && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative">
+                    <span className="sr-only">Notifications</span>
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-[10px] text-white flex items-center justify-center">
+                      {notifs.filter(n => !n.read_at).length}
+                    </span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a6 6 0 00-6 6v3.586l-1.707 1.707A1 1 0 005 15h14a1 1 0 00.707-1.707L18 11.586V8a6 6 0 00-6-6zm0 20a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <div className="px-3 py-2 text-sm font-medium">Notifications</div>
+                  {notifs.length === 0 && (
+                    <div className="px-3 py-6 text-center text-sm text-muted-foreground">No notifications</div>
+                  )}
+                  {notifs.slice(0, 3).map((n) => (
+                    <DropdownMenuItem key={n.id} className="flex flex-col items-start gap-1">
+                      <div className="text-sm font-medium capitalize">{n.type.replace('_',' ')}</div>
+                      <div className="text-xs text-muted-foreground break-words w-full">{n.payload && (n.payload.message || n.payload.room_code || n.payload.from_name)}</div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
+            >
+              {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
       </div>
 

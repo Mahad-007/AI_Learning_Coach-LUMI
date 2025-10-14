@@ -305,64 +305,54 @@ export function LessonViewer({ lesson, onClose }: LessonViewerProps) {
             className="fixed top-16 left-0 right-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b"
           >
             <div className="container mx-auto px-4 py-3">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 w-full">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={onClose}
                     className="shrink-0"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4 sm:w-5 sm:h-5" />
                   </Button>
                   <div className="flex-1 min-w-0">
-                    <h1 className="font-semibold truncate">{lesson.topic}</h1>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <h1 className="font-semibold truncate text-sm sm:text-base">{lesson.topic}</h1>
+                    <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-xs text-muted-foreground">
                       <span className="capitalize">{lesson.difficulty}</span>
-                      <span>•</span>
+                      <span className="hidden sm:inline">•</span>
                       <span>{formatTime(timeSpent)} spent</span>
-                      <span>•</span>
-                      <span>{percentComplete}% complete (visited: {visitedSections.size}/{totalSections})</span>
+                      <span className="hidden md:inline">•</span>
+                      <span className="hidden md:inline">{percentComplete}% complete</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1 sm:gap-2 shrink-0 w-full sm:w-auto justify-end">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setShowNotes(!showNotes)}
-                    className="gap-2"
+                    className="gap-1 sm:gap-2 px-2 sm:px-3"
                   >
-                    <StickyNote className="w-4 h-4" />
-                    <span className="hidden sm:inline">Notes</span>
+                    <StickyNote className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline text-xs">Notes</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setFocusMode(!focusMode)}
-                    className="gap-2"
+                    className="gap-1 sm:gap-2 px-2 sm:px-3"
                   >
                     {focusMode ? (
-                      <Eye className="w-4 h-4" />
+                      <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                     ) : (
-                      <EyeOff className="w-4 h-4" />
+                      <EyeOff className="w-3 h-3 sm:w-4 sm:h-4" />
                     )}
-                    <span className="hidden sm:inline">Focus</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => EnhancedLessonService.checkAndAwardMissingBadges(user!.id)}
-                    className="gap-2"
-                    title="Check and award missing badges"
-                  >
-                    🏆
-                    <span className="hidden sm:inline">Check Badges</span>
+                    <span className="hidden sm:inline text-xs">Focus</span>
                   </Button>
                   {!isCompleted && (
-                    <Button onClick={handleCompleteLesson} className="gap-2">
-                      <CheckCircle2 className="w-4 h-4" />
+                    <Button onClick={handleCompleteLesson} className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4" size="sm">
+                      <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4" />
                       <span className="hidden sm:inline">Complete</span>
                     </Button>
                   )}
