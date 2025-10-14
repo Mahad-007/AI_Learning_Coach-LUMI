@@ -739,6 +739,79 @@ Return the summary as plain markdown text.`;
   }
 
   /**
+   * Regenerate AI summary (overwrite existing if present)
+   */
+  static async regenerateSummary(
+    userId: string,
+    lessonId: string,
+    content: string,
+    sectionAnchor: string | null = null,
+    persona: Persona = 'friendly'
+  ): Promise<GeneratedSummary> {
+    try {
+      // Check if existing summary exists
+      let query = supabase
+        .from('user_generated_summaries')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('lesson_id', lessonId);
+
+      if (sectionAnchor) {
+        query = query.eq('section_anchor', sectionAnchor);
+      } else {
+        query = query.is('section_anchor', null);
+      }
+
+      const { data: existing } = await query.maybeSingle();
+
+      // Generate new content
+      const prompt = `Create a concise but comprehensive summary of the following content. 
+Include the main concepts, key takeaways, and important points. Format the summary in markdown with:
+- A brief overview paragraph
+- Key takeaways as bullet points
+- Any important code examples or concepts highlighted
+
+Content:
+${content.substring(0, 3000)}
+
+Return the summary as plain markdown text.`;
+
+      const summaryContent = await generateWithPersona(prompt, persona);
+
+      if (existing) {
+        // Overwrite existing
+        const { data, error } = await supabase
+          .from('user_generated_summaries')
+          .update({ summary_content: summaryContent })
+          .eq('id', (existing as any).id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data as GeneratedSummary;
+      }
+
+      // No existing record, insert new
+      const { data, error } = await supabase
+        .from('user_generated_summaries')
+        .insert({
+          user_id: userId,
+          lesson_id: lessonId,
+          section_anchor: sectionAnchor,
+          summary_content: summaryContent,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as GeneratedSummary;
+    } catch (error: any) {
+      console.error('Regenerate summary error:', error);
+      throw new Error(error.message || 'Failed to regenerate summary');
+    }
+  }
+
+  /**
    * Get summary for lesson
    */
   static async getSummary(

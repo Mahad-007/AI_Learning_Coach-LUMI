@@ -59,6 +59,23 @@ export function AISummaryPanel({ isOpen, onClose, lesson }: AISummaryPanelProps)
     }
   };
 
+  const regenerateSummary = async () => {
+    try {
+      setLoading(true);
+      const newSummary = await EnhancedLessonService.regenerateSummary(
+        user!.id,
+        lesson.id,
+        lesson.content
+      );
+      setSummary(newSummary);
+      toast.success('Summary regenerated!');
+    } catch (error) {
+      toast.error('Failed to regenerate summary');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -139,7 +156,7 @@ export function AISummaryPanel({ isOpen, onClose, lesson }: AISummaryPanelProps)
               {/* Footer */}
               {summary && (
                 <div className="p-4 border-t">
-                  <Button onClick={generateSummary} variant="outline" className="w-full">
+                  <Button onClick={regenerateSummary} variant="outline" className="w-full">
                     Regenerate Summary
                   </Button>
                 </div>

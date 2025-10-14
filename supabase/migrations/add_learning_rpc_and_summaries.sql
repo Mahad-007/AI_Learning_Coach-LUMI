@@ -58,6 +58,28 @@ BEGIN
   END IF;
 END $$;
 
+-- Allow updates/deletes by owner too
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname = 'public' AND tablename = 'user_generated_summaries'
+      AND policyname = 'Users can update own summaries'
+  ) THEN
+    CREATE POLICY "Users can update own summaries" ON public.user_generated_summaries
+      FOR UPDATE USING (auth.uid() = user_id);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname = 'public' AND tablename = 'user_generated_summaries'
+      AND policyname = 'Users can delete own summaries'
+  ) THEN
+    CREATE POLICY "Users can delete own summaries" ON public.user_generated_summaries
+      FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END $$;
+
 -- 2) Ensure user_progress has expected columns used by the app
 DO $$
 BEGIN
