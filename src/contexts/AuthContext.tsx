@@ -96,6 +96,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkUser = async () => {
     try {
+      // Check if we have a valid session first
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.log('[AuthContext] No valid session found');
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       const currentUser = await AuthService.getCurrentUser();
       if (currentUser) {
         setUser({
@@ -114,8 +124,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           theme_preference: currentUser.theme_preference,
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Auth check error:", error);
+      // If it's an auth error, clear the session
+      if (error.message?.includes('Invalid Refresh Token') || error.message?.includes('JWT')) {
+        await supabase.auth.signOut();
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }

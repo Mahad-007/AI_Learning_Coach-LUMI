@@ -52,24 +52,31 @@ export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const location = useLocation();
+  const { isAuthenticated, user, logout } = useAuth();
+  const [friendsOpen, setFriendsOpen] = useState(false);
   const [notifs, setNotifs] = useState<any[]>([]);
+  
+  const navLinks = isAuthenticated ? authenticatedNavLinks : publicNavLinks;
+
   // Load notifications (simple polling for now)
   useEffect(() => {
+    if (!isAuthenticated) return; // Only load notifications when authenticated
+    
     let mounted = true;
     const load = async () => {
       try {
         const list = await NotificationsService.list(10);
-        if (mounted) setNotifs(list);
-      } catch {}
+        if (mounted) setNotifs(list || []);
+      } catch (error) {
+        // Silently fail - notifications are non-critical
+        console.log('Failed to load notifications:', error);
+        if (mounted) setNotifs([]);
+      }
     };
     load();
-    const id = setInterval(load, 8000);
+    const id = setInterval(load, 10000); // Reduced frequency to 10s for better performance
     return () => { mounted = false; clearInterval(id); };
-  }, []);
-  const { isAuthenticated, user, logout } = useAuth();
-  const [friendsOpen, setFriendsOpen] = useState(false);
-  
-  const navLinks = isAuthenticated ? authenticatedNavLinks : publicNavLinks;
+  }, [isAuthenticated]);
 
   // Initialize theme from localStorage or system preference
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { FriendsService } from '@/services/friendsService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export default function Friends() {
   const { user } = useAuth();
@@ -17,20 +18,25 @@ export default function Friends() {
   const [requests, setRequests] = useState<{ sent: any[]; received: any[] }>({ sent: [], received: [] });
   const [loading, setLoading] = useState(false);
 
-  const refresh = async () => {
+  // Debounce the search query for better performance
+  const debouncedQuery = useDebounce(query, 500);
+
+  const refresh = useCallback(async () => {
     const [f, r] = await Promise.all([FriendsService.listFriends(), FriendsService.listRequests()]);
     setFriends(f);
     setRequests(r);
-  };
-
-  useEffect(() => {
-    refresh();
   }, []);
 
-  const handleSearch = async () => {
+  const handleSearch = useCallback(async () => {
+    if (!debouncedQuery.trim()) {
+      setResult(null);
+      setFriendshipStatus(null);
+      return;
+    }
+    
     setLoading(true);
     try {
-      const res = await FriendsService.searchByEmailOrUsername(query.trim());
+      const res = await FriendsService.searchByEmailOrUsername(debouncedQuery.trim());
       setResult(res);
       if (res) {
         const status = await FriendsService.checkFriendshipStatus(res.id);
@@ -43,7 +49,16 @@ export default function Friends() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [debouncedQuery, toast]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  // Auto-search when debounced query changes
+  useEffect(() => {
+    handleSearch();
+  }, [handleSearch]);
 
   const sendInviteEmail = async (email: string) => {
     try {
@@ -120,8 +135,13 @@ export default function Friends() {
 
       <Card className="p-3 sm:p-4 mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-          <Input placeholder="Search by email or username" value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1" />
-          <Button onClick={handleSearch} disabled={loading} className="w-full sm:w-auto">{loading ? "Searching..." : "Search"}</Button>
+          <Input 
+            placeholder="Search by email or username" 
+            value={query} 
+            onChange={(e) => setQuery(e.target.value)} 
+            className="flex-1" 
+          />
+          {loading && <span className="text-xs text-muted-foreground sm:ml-2">Searching...</span>}
         </div>
         {result === null && query && !loading && (
           <div className="mt-4 text-sm text-muted-foreground">No user found. You can send an invitation.</div>
