@@ -1,5 +1,8 @@
 import { supabase } from '../lib/supabaseClient';
 import { generateStructuredContent } from '../lib/geminiClient';
+import { GamificationService } from './gamificationService';
+import { AchievementSystem } from './achievementSystem';
+import { XPUpdateService } from './xpUpdateService';
 import type {
   Quiz,
   QuizQuestion,
@@ -242,13 +245,31 @@ export class QuizService {
         .eq('user_id', userId)
         .eq('lesson_id', quiz.lesson_id);
 
-      // Award XP
-      await this.awardQuizXP(userId, xpEarned, percentage);
+      // Award XP using dedicated service
+      const difficulty = quiz.questions.length >= 10 ? 'advanced' : 
+                        quiz.questions.length >= 5 ? 'intermediate' : 'beginner';
+      await XPUpdateService.addXP(userId, xpEarned, `quiz_${difficulty}_${percentage}%`);
 
-      // Award perfect score badge if applicable
+      // Award first-time quiz badge (if first quiz)
+      await AchievementSystem.awardFirstTimeBadge(userId, {
+        badge_type: 'first_time',
+        badge_name: 'Quiz Beginner',
+        badge_description: 'Completed your first quiz',
+        badge_icon: '📝',
+      });
+
+      // Award first-time perfect score badge (if 100%)
       if (percentage === 100) {
-        await this.awardPerfectScoreBadge(userId);
+        await AchievementSystem.awardFirstTimeBadge(userId, {
+          badge_type: 'first_time',
+          badge_name: 'Perfect Start',
+          badge_description: 'Achieved your first perfect score',
+          badge_icon: '🎊',
+        });
       }
+
+      // Trigger database achievement evaluation (for count-based achievements)
+      await AchievementSystem.evaluateAchievements();
 
       return {
         quiz_id: quiz.id,
@@ -461,32 +482,6 @@ Return the response as a JSON object with this exact structure:
     }
   }
 
-  /**
-   * Private helper: Award perfect score badge
-   */
-  private static async awardPerfectScoreBadge(userId: string): Promise<void> {
-    try {
-      // Check if user already has this badge
-      const { data: existingBadge } = await supabase
-        .from('badges')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('badge_type', 'perfect_quiz')
-        .single();
-
-      if (!existingBadge) {
-        await supabase.from('badges').insert({
-          user_id: userId,
-          badge_type: 'perfect_quiz',
-          badge_name: 'Perfect Score',
-          badge_description: 'Achieved 100% on a quiz',
-          badge_icon: '🏆',
-        });
-      }
-    } catch (error) {
-      console.error('Failed to award perfect score badge:', error);
-    }
-  }
 }
 
 export default QuizService;

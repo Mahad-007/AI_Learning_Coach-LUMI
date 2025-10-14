@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import { generateStructuredContent } from '../lib/geminiClient';
+import { XPUpdateService } from './xpUpdateService';
 
 /**
  * Trivia Service
@@ -317,10 +318,11 @@ Return ONLY valid JSON in this exact format:
       for (const participant of participants) {
         const xp = participant.score; // 1 XP per point
         if (xp > 0) {
-          await supabase.rpc('award_xp_to_user', {
-            p_user_id: participant.user_id,
-            p_xp_amount: xp,
-          });
+          try {
+            await XPUpdateService.addXP(participant.user_id, xp, `trivia_score_${xp}`);
+          } catch (error) {
+            console.error(`Failed to award trivia XP to ${participant.user_id}:`, error);
+          }
         }
       }
     } catch (error) {

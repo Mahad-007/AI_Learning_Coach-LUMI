@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
-import { XPService } from './xpService';
+import { XPUpdateService } from './xpUpdateService';
 
 /**
  * Quiz Result Service
@@ -28,37 +28,67 @@ export class QuizResultService {
   }> {
     try {
       // Calculate XP based on difficulty and performance
-      const xpEarned = XPService.calculateQuizXP(
-        quizData.difficulty,
-        quizData.correctAnswers,
-        quizData.totalQuestions
-      );
+      const baseXP = {
+        beginner: 10,
+        intermediate: 15,
+        advanced: 25,
+      };
+      
+      const xpPerCorrect = baseXP[quizData.difficulty];
+      const earnedXP = quizData.correctAnswers * xpPerCorrect;
+      const perfectBonus = quizData.correctAnswers === quizData.totalQuestions ? 20 : 0;
+      const xpEarned = earnedXP + perfectBonus;
 
-      // Save quiz result and award XP
-      const { data, error } = await supabase.rpc('complete_quiz', {
-        p_user_id: userId,
-        p_quiz_type: quizData.quizType,
-        p_topic: quizData.topic,
-        p_difficulty: quizData.difficulty,
-        p_total_questions: quizData.totalQuestions,
-        p_correct_answers: quizData.correctAnswers,
-        p_xp_earned: xpEarned,
+      console.log(`[QuizResultService] Quiz XP calculation:`, {
+        difficulty: quizData.difficulty,
+        correct: quizData.correctAnswers,
+        totalQuestions: quizData.totalQuestions,
+        basePerQuestion: xpPerCorrect,
+        earned: earnedXP,
+        perfectBonus,
+        totalXP: xpEarned
       });
 
-      if (error) throw error;
+      // Award XP using dedicated service
+      const xpResult = await XPUpdateService.addXP(userId, xpEarned, `quiz_${quizData.difficulty}`);
 
-      // Get updated user stats
-      const xpResult = await XPService.awardXP(userId, 0); // Just to get current stats
+      // Save quiz result if table exists
+      let quizResultId = 'unknown';
+      try {
+        const { data: quizResult, error: insertError } = await supabase
+          .from('quiz_results')
+          .insert({
+            user_id: userId,
+            quiz_type: quizData.quizType,
+            topic: quizData.topic,
+            difficulty: quizData.difficulty,
+            total_questions: quizData.totalQuestions,
+            correct_answers: quizData.correctAnswers,
+            score_percentage: Math.round((quizData.correctAnswers / quizData.totalQuestions) * 100),
+            xp_earned: xpEarned,
+            completed_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+
+        if (insertError) {
+          console.warn('[QuizResultService] quiz_results table might not exist:', insertError.message);
+        } else {
+          quizResultId = quizResult?.id || 'unknown';
+        }
+      } catch (err) {
+        console.warn('[QuizResultService] Could not save to quiz_results:', err);
+      }
 
       return {
-        quizId: data,
+        quizId: quizResultId,
         xpEarned,
-        newXP: xpResult.new_xp,
-        newLevel: xpResult.new_level,
-        leveledUp: xpResult.leveled_up,
+        newXP: xpResult.newXP,
+        newLevel: Math.floor(Math.sqrt(xpResult.newXP / 100)) + 1,
+        leveledUp: xpResult.levelChanged,
       };
     } catch (error) {
-      console.error('Failed to complete quiz:', error);
+      console.error('[QuizResultService] Failed to complete quiz:', error);
       throw error;
     }
   }

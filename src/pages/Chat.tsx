@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { ChatWindow, ChatInput, ChatSidebar, LearningPrompt } from "@/components/Chat";
+import { ChatWindow, ChatInput, ChatSidebar, LearningPrompt } from "@/components/chat";
 import { Button } from "@/components/ui/button";
 import { Menu, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { generateStreamWithPersonaFast } from "@/lib/geminiClient";
 import { supabase } from "@/lib/supabaseClient";
+import { XPUpdateService } from "@/services/xpUpdateService";
+import { AchievementSystem } from "@/services/achievementSystem";
 import type { Persona } from "@/types/user";
-import { XPService } from "@/services/xpService";
 
 interface Message {
   id: string;
@@ -35,7 +36,7 @@ export default function Chat() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [persona] = useState<Persona>("friendly");
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [userMessageCount, setUserMessageCount] = useState(0);
+  const [aiMessageCount, setAiMessageCount] = useState(0);
   const [showLearningPrompt, setShowLearningPrompt] = useState(false);
 
   useEffect(() => {
@@ -55,8 +56,11 @@ export default function Chat() {
         .limit(1);
 
       if (sessions && sessions.length > 0) {
-        setCurrentSessionId(sessions[0].id);
-        await loadSessionMessages(sessions[0].id);
+        const session = sessions[0] as any;
+        if (session?.id) {
+          setCurrentSessionId(session.id);
+          await loadSessionMessages(session.id);
+        }
       } else {
         // Create a new session if none exist
         await createNewSession();
@@ -77,13 +81,14 @@ export default function Chat() {
         .insert({
           user_id: user.id,
           title: "New Chat",
-        })
+        } as any)
         .select()
         .single();
 
       if (error) throw error;
+      if (!data) throw new Error("No data returned");
 
-      setCurrentSessionId(data.id);
+      setCurrentSessionId((data as any).id);
       setMessages([]);
       toast.success("New chat started");
     } catch (error) {
@@ -119,15 +124,15 @@ export default function Chat() {
   const handleSessionSelect = async (sessionId: string) => {
     setCurrentSessionId(sessionId);
     await loadSessionMessages(sessionId);
-    // Reset message count when switching sessions
-    setUserMessageCount(0);
+    // Reset AI message count when switching sessions
+    setAiMessageCount(0);
     setShowLearningPrompt(false);
   };
 
   const handleNewChat = async () => {
     await createNewSession();
-    // Reset message count for new chat
-    setUserMessageCount(0);
+    // Reset AI message count for new chat
+    setAiMessageCount(0);
     setShowLearningPrompt(false);
   };
 
@@ -139,10 +144,13 @@ export default function Chat() {
 
   const updateSessionTitle = async (sessionId: string, title: string) => {
     try {
-      await supabase
+      const { error } = await supabase
         .from("chat_sessions")
+        // @ts-ignore - Supabase type issue with chat_sessions table
         .update({ title })
         .eq("id", sessionId);
+      
+      if (error) throw error;
     } catch (error) {
       console.error("Failed to update session title:", error);
     }
@@ -159,12 +167,12 @@ export default function Chat() {
           session_id: currentSessionId,
           role: role,
           message: content,
-        })
+        } as any)
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return data || null;
     } catch (error) {
       console.error("Failed to save message:", error);
       return null;
@@ -192,17 +200,10 @@ export default function Chat() {
     setIsLoading(true);
     setStreamingMessage("");
 
-    // Increment user message count
-    const newCount = userMessageCount + 1;
-    setUserMessageCount(newCount);
-
-    // Check if we should show learning prompt after this message
-    const shouldShowPrompt = newCount % 7 === 0;
-
     try {
       // Save user message to database
       const savedUserMsg = await saveMessage("user", content);
-      if (savedUserMsg) {
+      if (savedUserMsg?.id) {
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === userMessage.id ? { ...msg, id: savedUserMsg.id } : msg
@@ -245,29 +246,35 @@ export default function Chat() {
       setMessages((prev) => [...prev, aiMessage]);
       setStreamingMessage("");
 
-      // Award 1 XP for AI message
+      // Increment AI message count and check if we should show learning prompt
+      const newAiCount = aiMessageCount + 1;
+      setAiMessageCount(newAiCount);
+
+      // Show learning prompt after every 6 AI messages
+      const shouldShowPrompt = newAiCount % 6 === 0;
+
+      // Award XP and check achievements
       if (user) {
         try {
-          const xpResult = await XPService.awardXP(user.id, 1);
+          // Award 1 XP for chat message
+          await XPUpdateService.addXP(user.id, 1, 'chat_message');
           
-          // Update user context
-          await updateProfile({ xp: xpResult.new_xp, level: xpResult.new_level });
+          // Check for first-time chat badge
+          await AchievementSystem.awardFirstTimeBadge(user.id, {
+            badge_type: 'first_time',
+            badge_name: 'Conversation Starter',
+            badge_description: 'Sent your first AI chat message',
+            badge_icon: '💬',
+          });
 
-          if (xpResult.leveled_up) {
-            toast.success(`🎉 Level Up! You're now Level ${xpResult.new_level}!`, {
-              description: `Keep learning to reach Level ${xpResult.new_level + 1}!`,
-            });
-          } else {
-            toast.success("+1 XP earned! 💬", {
-              description: "Keep chatting to level up!",
-            });
-          }
+          // Evaluate count-based achievements (like Chat Enthusiast at 50 messages)
+          await AchievementSystem.evaluateAchievements();
         } catch (error) {
-          console.error('Failed to award XP:', error);
+          console.error('[Chat] Failed to award XP/achievements:', error);
         }
       }
 
-      // Show learning prompt after AI responds if it's the 7th message
+      // Show learning prompt after AI responds if it's the 6th message
       if (shouldShowPrompt) {
         setShowLearningPrompt(true);
       }
@@ -361,7 +368,7 @@ export default function Chat() {
           userAvatar={user?.avatar}
         />
 
-        {/* Learning Prompt - appears after 7 messages */}
+        {/* Learning Prompt - appears after every 6 AI messages */}
         {showLearningPrompt && (
           <LearningPrompt 
             onContinue={handleContinueLearning}

@@ -14,7 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import Chat from "./pages/Chat";
 import Quiz from "./pages/Quiz";
 import Leaderboard from "./pages/Leaderboard";
-import Lesson from "./pages/Lesson";
+import Learn from "./pages/Learn";
 import Profile from "./pages/Profile";
 import Whiteboard from "./pages/Whiteboard";
 import NotFound from "./pages/NotFound";
@@ -61,7 +61,7 @@ const AppLayout = () => {
                 <Route path="/trivia/game/:roomId" element={<ProtectedRoute><TriviaGame /></ProtectedRoute>} />
                 <Route path="/trivia/leaderboard/:roomId" element={<ProtectedRoute><TriviaLeaderboard /></ProtectedRoute>} />
                 <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
-                <Route path="/learn" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
+                <Route path="/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/whiteboard" element={<ProtectedRoute><Whiteboard /></ProtectedRoute>} />
                 

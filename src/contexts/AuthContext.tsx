@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { AuthService } from "@/services/authService";
+import { GamificationService } from "@/services/gamificationService";
+import { supabase } from "@/lib/supabaseClient";
 import type { User as BackendUser } from "@/types/user";
 import { toast } from "sonner";
 
@@ -38,6 +40,59 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     checkUser();
   }, []);
+
+  // Real-time XP/Level updates
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('[AuthContext] Setting up realtime XP subscription for user:', user.id);
+
+    const channel = supabase
+      .channel(`user_xp:${user.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'users',
+        filter: `id=eq.${user.id}`
+      }, (payload) => {
+        console.log('[AuthContext] User data updated in database:', payload.new);
+        
+        const updatedUser = payload.new as any;
+        
+        // Update local user state with new XP/level
+        setUser(prev => {
+          if (!prev) return prev;
+          
+          const xpChanged = prev.xp !== updatedUser.xp;
+          const levelChanged = prev.level !== updatedUser.level;
+          
+          if (xpChanged || levelChanged) {
+            console.log(`[AuthContext] XP: ${prev.xp} → ${updatedUser.xp}, Level: ${prev.level} → ${updatedUser.level}`);
+          }
+          
+          return {
+            ...prev,
+            xp: updatedUser.xp,
+            level: updatedUser.level,
+            streak: updatedUser.streak,
+            persona: updatedUser.persona,
+            learning_mode: updatedUser.learning_mode,
+            theme_preference: updatedUser.theme_preference,
+            username: updatedUser.username,
+            bio: updatedUser.bio,
+            avatar: updatedUser.avatar_url || prev.avatar,
+          };
+        });
+      })
+      .subscribe((status) => {
+        console.log('[AuthContext] Realtime subscription status:', status);
+      });
+
+    return () => {
+      console.log('[AuthContext] Cleaning up XP subscription');
+      channel.unsubscribe();
+    };
+  }, [user?.id]);
 
   const checkUser = async () => {
     try {
@@ -162,6 +217,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         level: updatedUser.level,
         streak: updatedUser.streak,
       });
+      
+      // Check and award special milestone badges (like Profile Pro)
+      await GamificationService.checkSpecialMilestones(user.id);
       
       toast.success("Profile updated!");
     } catch (error: any) {
