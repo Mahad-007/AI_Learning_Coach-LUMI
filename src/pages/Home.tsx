@@ -1,10 +1,11 @@
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Brain, Zap, Target, Users, ArrowRight, CheckCircle2, Star, PenTool, MessageSquare, Trophy, BarChart3, BookOpen, User } from "lucide-react";
 import AOS from "aos";
 import heroImage from "@/assets/hero-illustration.jpg";
+import { useAuth } from "@/contexts/AuthContext";
 
 const features = [
   // Core AI learning
@@ -98,6 +99,11 @@ export default function Home() {
       easing: "ease-out",
     });
   }, []);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const handleStartLearning = () => {
+    navigate(user ? "/learn" : "/login");
+  };
 
   return (
     <div className="min-h-screen">
@@ -119,10 +125,8 @@ export default function Home() {
                 gamification, and personalized progress tracking.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button variant="hero" size="xl" asChild>
-                  <Link to="/signup">
-                    Start Learning <ArrowRight className="ml-2 w-5 h-5" />
-                  </Link>
+                <Button variant="hero" size="xl" onClick={handleStartLearning}>
+                  Start Learning <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </div>
             </div>
