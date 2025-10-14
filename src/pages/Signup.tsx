@@ -67,7 +67,7 @@ export default function Signup() {
       <Card className="w-full max-w-md p-8 relative z-10 shadow-2xl">
         <div className="text-center mb-8">
           <div className="inline-flex p-3 bg-gradient-primary rounded-xl shadow-glow mb-4">
-            <Brain className="w-8 h-8 text-white" />
+            <img src="/logo.png" alt="Lumi Logo" className="w-8 h-8" />
           </div>
           <h1 className="text-3xl font-bold mb-2">Create Account</h1>
           <p className="text-muted-foreground">Start your learning journey today</p>

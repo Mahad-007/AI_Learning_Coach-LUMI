@@ -1,4 +1,4 @@
--- AI Learning Coach Database Schema
+-- Lumi Database Schema
 -- This SQL script creates all necessary tables, indexes, and RLS policies
 
 -- Enable UUID extension

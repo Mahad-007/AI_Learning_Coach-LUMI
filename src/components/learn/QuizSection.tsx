@@ -104,7 +104,7 @@ export function QuizSection({ lesson }: QuizSectionProps) {
       <Card className="p-6 bg-gradient-to-br from-primary/5 to-transparent">
         <div className="flex items-start gap-4">
           <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <Brain className="w-6 h-6 text-primary" />
+            <img src="/logo.png" alt="Lumi Logo" className="w-6 h-6" />
           </div>
           <div className="flex-1">
             <h3 className="font-bold text-lg mb-2">Test Your Knowledge</h3>

@@ -232,9 +232,9 @@ export default function Profile() {
       case "ai_chat": return <MessageSquare className="w-4 h-4" />;
       case "stories": return <BookOpen className="w-4 h-4" />;
       case "whiteboard": return <Palette className="w-4 h-4" />;
-      case "quiz": return <Brain className="w-4 h-4" />;
+      case "quiz": return <img src="/logo.png" alt="Lumi Logo" className="w-4 h-4" />;
       case "tutoring": return <Target className="w-4 h-4" />;
-      default: return <Brain className="w-4 h-4" />;
+      default: return <img src="/logo.png" alt="Lumi Logo" className="w-4 h-4" />;
     }
   };
 
@@ -445,7 +445,7 @@ export default function Profile() {
               {/* Learning Mode */}
               <div className="space-y-2">
                 <Label htmlFor="learning_mode" className="flex items-center gap-2">
-                  <Brain className="w-4 h-4" />
+                  <img src="/logo.png" alt="Lumi Logo" className="w-4 h-4" />
                   Preferred Learning Mode
                 </Label>
                 <Select
@@ -476,7 +476,7 @@ export default function Profile() {
                     </SelectItem>
                     <SelectItem value="quiz">
                       <div className="flex items-center gap-2">
-                        <Brain className="w-4 h-4" />
+                        <img src="/logo.png" alt="Lumi Logo" className="w-4 h-4" />
                         Quiz
                       </div>
                     </SelectItem>
@@ -611,7 +611,7 @@ export default function Profile() {
               <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-secondary/5 to-secondary/10">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-3 bg-secondary/10 rounded-lg">
-                    <Brain className="w-6 h-6 text-secondary" />
+                    <img src="/logo.png" alt="Lumi Logo" className="w-6 h-6" />
                   </div>
                   <h3 className="font-semibold text-lg">Quiz Average</h3>
                 </div>

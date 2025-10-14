@@ -91,15 +91,19 @@ export const Navigation = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="p-2 bg-gradient-primary rounded-lg shadow-md group-hover:shadow-glow transition-all duration-300">
-              <Brain className="w-6 h-6 text-white" />
+          {/* BETA Label */}
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-2 py-1 rounded-md shadow-sm">
+              BETA
             </div>
-            <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              AI Learning Coach
-            </span>
-          </Link>
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-2 group">
+              <img src="/logo.png" alt="Lumi Logo" className="w-16 h-16" />
+              <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                Lumi
+              </span>
+            </Link>
+          </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">

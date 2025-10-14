@@ -17,13 +17,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     await transporter.sendMail({
-      from: `AI Learning Coach <${process.env.GMAIL_USER}>`,
+      from: `Lumi <${process.env.GMAIL_USER}>`,
       to,
-      subject: `${inviterName} invited you to AI Learning Coach`,
+      subject: `${inviterName} invited you to Lumi`,
       html: `
         <div style="font-family:Arial,sans-serif;line-height:1.5">
           <h2>You're invited!</h2>
-          <p><strong>${inviterName}</strong> is using AI Learning Coach and wants you to join.</p>
+          <p><strong>${inviterName}</strong> is using Lumi and wants you to join.</p>
           <p><a href="${signupLink}" style="display:inline-block;padding:10px 16px;background:#10b981;color:#fff;border-radius:8px;text-decoration:none">Create your account</a></p>
           <p>If the button doesn't work, paste this URL in your browser:<br/>${signupLink}</p>
         </div>

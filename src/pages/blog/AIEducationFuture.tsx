@@ -135,7 +135,7 @@ export default function AIEducationFuture() {
               We're standing at the threshold of an educational revolution. AI-powered education isn't a distant dream—it's happening now, and it's accelerating. The platforms being built today will shape how billions of people learn for decades to come.
             </p>
             <p className="text-muted-foreground leading-relaxed mb-6">
-              At AI Learning Coach, we're committed to being at the forefront of this transformation, ensuring that AI enhances learning while preserving the human elements that make education meaningful. The future of learning is here, and it's more exciting than we ever imagined.
+              At Lumi, we're committed to being at the forefront of this transformation, ensuring that AI enhances learning while preserving the human elements that make education meaningful. The future of learning is here, and it's more exciting than we ever imagined.
             </p>
           </div>
 

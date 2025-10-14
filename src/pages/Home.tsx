@@ -135,7 +135,7 @@ export default function Home() {
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                 <img
                   src={heroImage}
-                  alt="AI Learning Coach Interface"
+                  alt="Lumi Interface"
                   className="w-full h-auto animate-float"
                 />
                 <div className="absolute inset-0 bg-gradient-primary opacity-20"></div>
@@ -150,7 +150,7 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16" data-aos="fade-up">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Why Choose AI Learning Coach?
+              Why Choose Lumi?
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Experience the future of education with AI-powered personalized learning

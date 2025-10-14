@@ -155,7 +155,7 @@ export default function TimeManagement() {
           <Card className="p-8 text-center bg-gradient-to-br from-primary/10 to-purple-500/10 mt-12">
             <h3 className="text-2xl font-bold mb-4">Master Your Time, Master Your Learning</h3>
             <p className="text-muted-foreground mb-6">
-              Join AI Learning Coach for tools that help you study smarter, not harder
+              Join Lumi for tools that help you study smarter, not harder
             </p>
             <Button size="lg" asChild>
               <Link to="/signup">Get Started Free</Link>

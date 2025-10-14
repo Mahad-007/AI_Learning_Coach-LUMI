@@ -114,7 +114,7 @@ export default function Dashboard() {
             <Card className="p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 hover:border-purple-500/50" data-aos="fade-up" data-aos-delay={100}>
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg group-hover:scale-110 transition-transform">
-                  <Brain className="w-6 h-6 text-white" />
+                  <img src="/logo.png" alt="Lumi Logo" className="w-6 h-6" />
                 </div>
                 <div>
                   <h3 className="font-bold text-lg mb-1">Take a Quiz</h3>

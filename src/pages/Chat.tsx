@@ -352,7 +352,7 @@ export default function Chat() {
             <Menu className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="font-bold text-lg">AI Learning Coach</h1>
+            <h1 className="font-bold text-lg">Lumi</h1>
             <p className="text-xs text-muted-foreground">
               Gemini 2.0 Flash • Real-time streaming • Markdown support
             </p>

@@ -97,7 +97,7 @@ export default function PrivacyPolicy() {
           <h2 className="text-2xl font-bold mb-4">Introduction</h2>
           <div className="prose prose-sm max-w-none text-muted-foreground space-y-4">
             <p>
-              At AI Learning Coach, we take your privacy seriously. This Privacy Policy describes how we collect, use, disclose, and safeguard your information when you use our platform and services.
+              At Lumi, we take your privacy seriously. This Privacy Policy describes how we collect, use, disclose, and safeguard your information when you use our platform and services.
             </p>
             <p>
               By using our services, you agree to the collection and use of information in accordance with this policy. If you do not agree with our policies and practices, please do not use our services.
@@ -178,7 +178,7 @@ export default function PrivacyPolicy() {
           </p>
           <div className="text-muted-foreground space-y-2">
             <p>• Email: privacy@ailearningcoach.com</p>
-            <p>• Mail: AI Learning Coach, 123 Innovation Drive, San Francisco, CA 94102</p>
+            <p>• Mail: Lumi, 123 Innovation Drive, San Francisco, CA 94102</p>
             <p>• Data Protection Officer: dpo@ailearningcoach.com</p>
           </div>
         </Card>

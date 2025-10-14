@@ -269,7 +269,7 @@ Return ONLY valid JSON in this exact format:
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12 animate-in fade-in slide-in-from-top duration-500">
             <div className="inline-flex p-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full mb-4">
-              <Brain className="w-12 h-12 text-white" />
+              <img src="/logo.png" alt="Lumi Logo" className="w-12 h-12" />
             </div>
             <h1 className="text-4xl font-bold mb-3">Test Your Knowledge</h1>
             <p className="text-muted-foreground text-lg">

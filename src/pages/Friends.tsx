@@ -115,7 +115,7 @@ export default function Friends() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-10 max-w-5xl">
+    <div className="container mx-auto px-4 pt-24 pb-10 max-w-5xl">
       <h1 className="text-3xl font-bold mb-6">Find Friends</h1>
 
       <Card className="p-4 mb-8">

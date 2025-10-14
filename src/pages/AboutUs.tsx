@@ -58,13 +58,13 @@ export default function AboutUs() {
             <h2 className="text-3xl font-bold mb-6">Our Story</h2>
             <div className="space-y-4 text-muted-foreground leading-relaxed">
               <p>
-                AI Learning Coach was born from a simple observation: traditional education often fails to adapt to individual learning styles, paces, and interests. We believed there had to be a better way.
+                Lumi was born from a simple observation: traditional education often fails to adapt to individual learning styles, paces, and interests. We believed there had to be a better way.
               </p>
               <p>
                 In 2023, our founding team came together with a shared vision—to leverage artificial intelligence to create truly personalized learning experiences. We combined decades of experience in AI research, education, and product design to build a platform that adapts to each learner's unique needs.
               </p>
               <p>
-                Today, thousands of learners worldwide use AI Learning Coach to master new skills, achieve their goals, and unlock their full potential. But we're just getting started.
+                Today, thousands of learners worldwide use Lumi to master new skills, achieve their goals, and unlock their full potential. But we're just getting started.
               </p>
             </div>
           </Card>

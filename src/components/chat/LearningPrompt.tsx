@@ -55,7 +55,7 @@ export function LearningPrompt({ onContinue, chatContext = [], className }: Lear
               onClick={handleTakeQuiz}
               className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg transition-all"
             >
-              <Brain className="w-4 h-4 mr-2" />
+              <img src="/logo.png" alt="Lumi Logo" className="w-4 h-4 mr-2" />
               Take a Quiz
             </Button>
             <Button
