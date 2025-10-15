@@ -20,8 +20,8 @@ import NotificationDropdown from './NotificationDropdown';
 
 const publicNavLinks = [
   { name: "Home", path: "/", icon: Home, type: "link" },
-  { name: "Features", path: "/#features", icon: Sparkles, type: "link" },
-  { name: "Pricing", path: "/#pricing", icon: DollarSign, type: "link" },
+  { name: "Features", path: "/features", icon: Sparkles, type: "link" },
+  { name: "Pricing", path: "/pricing", icon: DollarSign, type: "link" },
 ];
 
 const authenticatedNavLinks = [
