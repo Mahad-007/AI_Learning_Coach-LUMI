@@ -1,4 +1,4 @@
-# 🧠 Lumi - AI Learning Coach 2.0
+# 🧠 Lumi - AI Learning Coach 2.0    
 
 <div align="center">
 
