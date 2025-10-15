@@ -6,11 +6,14 @@ export type FriendRequest = { id: string; sender_id: string; receiver_id: string
 
 export const FriendsService = {
   async searchByEmailOrUsername(query: string): Promise<FriendUser | null> {
-    const isEmail = query.includes('@');
+    const trimmed = (query || '').trim();
+    const isEmail = trimmed.includes('@');
+    const normalized = isEmail ? trimmed : trimmed.replace(/^@+/, '');
     const { data, error } = await supabase
       .from('users')
       .select('id,name,username,avatar_url,email')
-      .ilike(isEmail ? 'email' : 'username', query)
+      // For usernames, allow partial matches and handle inputs like "@john"
+      .ilike(isEmail ? 'email' : 'username', isEmail ? normalized : `%${normalized}%`)
       .limit(1)
       .maybeSingle();
     if (error && error.code !== 'PGRST116') throw error;
