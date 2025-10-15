@@ -28,22 +28,22 @@ export function ChatMessage({
   return (
     <div
       className={cn(
-        "flex gap-3 items-start mb-6 animate-in fade-in slide-in-from-bottom-2 duration-500",
+        "flex gap-2 sm:gap-3 items-start mb-4 sm:mb-6 animate-in fade-in slide-in-from-bottom-2 duration-500",
         isUser ? "flex-row-reverse" : "flex-row"
       )}
     >
       {/* Avatar */}
-      <Avatar className="w-8 h-8 border-2 border-border shrink-0">
+      <Avatar className="w-7 h-7 sm:w-8 sm:h-8 border-2 border-border shrink-0">
         {isUser ? (
           <>
             <AvatarImage src={userAvatar} alt={userName} />
             <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white text-xs">
-              <User className="w-4 h-4" />
+              <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </AvatarFallback>
           </>
         ) : (
           <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
-            <Bot className="w-4 h-4" />
+            <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </AvatarFallback>
         )}
       </Avatar>
@@ -51,13 +51,13 @@ export function ChatMessage({
       {/* Message Content */}
       <div
         className={cn(
-          "flex flex-col gap-1 max-w-[80%] md:max-w-[70%]",
+          "flex flex-col gap-1 max-w-[85%] sm:max-w-[80%] md:max-w-[70%]",
           isUser ? "items-end" : "items-start"
         )}
       >
         <div
           className={cn(
-            "rounded-2xl px-4 py-3 shadow-sm transition-all",
+            "rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 shadow-sm transition-all",
             isUser
               ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-tr-sm"
               : "bg-card border border-border rounded-tl-sm"
@@ -124,7 +124,7 @@ export function ChatMessage({
 
         {/* Timestamp */}
         {timestamp && (
-          <span className={cn("text-xs text-muted-foreground px-2", isUser ? "text-right" : "text-left")}>
+          <span className={cn("text-xs text-muted-foreground px-1 sm:px-2", isUser ? "text-right" : "text-left")}>
             {timestamp.toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",

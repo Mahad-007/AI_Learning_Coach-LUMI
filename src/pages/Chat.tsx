@@ -325,7 +325,7 @@ export default function Chat() {
         className={cn(
           "bg-card/50 backdrop-blur-lg border-r border-border/50 transition-all duration-300 overflow-hidden",
           "fixed inset-y-0 left-0 z-40 pt-16 md:relative md:pt-0 md:z-auto",
-          sidebarOpen ? "w-full md:w-80" : "w-0"
+          sidebarOpen ? "w-80 sm:w-96 md:w-80" : "w-0"
         )}
       >
         {sidebarOpen && (
@@ -356,12 +356,15 @@ export default function Chat() {
             variant="ghost"
             size="icon"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="hover:bg-primary/10 shrink-0"
+            className="hover:bg-primary/10 shrink-0 h-8 w-8 sm:h-10 sm:w-10"
           >
             <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
           <div className="min-w-0 flex-1">
-            <h1 className="font-bold text-base sm:text-lg truncate">Lumi</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-bold text-base sm:text-lg truncate">Lumi</h1>
+              <span className="px-2 py-0.5 bg-orange-500 text-white text-xs rounded-full font-medium">BETA</span>
+            </div>
             <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
               Gemini 2.0 Flash • Real-time streaming
             </p>

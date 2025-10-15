@@ -38,15 +38,15 @@ export function ChatWindow({
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto px-4 py-6 bg-gradient-to-b from-background to-background/50"
+      className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6 bg-gradient-to-b from-background to-background/50"
     >
       <div className="max-w-4xl mx-auto">
         {messages.length === 0 && !streamingMessage ? (
-          <div className="flex items-center justify-center h-full min-h-[400px]">
-            <div className="text-center space-y-4 animate-in fade-in duration-700">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto">
+          <div className="flex items-center justify-center h-full min-h-[300px] sm:min-h-[400px]">
+            <div className="text-center space-y-3 sm:space-y-4 animate-in fade-in duration-700">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto">
                 <svg
-                  className="w-8 h-8 text-white"
+                  className="w-6 h-6 sm:w-8 sm:h-8 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -60,13 +60,13 @@ export function ChatWindow({
                 </svg>
               </div>
               <div>
-                <h3 className="text-xl font-semibold mb-2">Start a conversation</h3>
+                <h3 className="text-lg sm:text-xl font-semibold mb-2">Start a conversation</h3>
                 <p className="text-muted-foreground text-sm max-w-md">
                   Ask me anything! I can explain concepts, solve problems, help with homework,
                   or discuss any topic you're curious about.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2 justify-center mt-6">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center mt-4 sm:mt-6">
                 {[
                   "Explain quantum physics",
                   "Help with calculus homework",
@@ -75,7 +75,7 @@ export function ChatWindow({
                 ].map((example, i) => (
                   <div
                     key={i}
-                    className="px-3 py-1.5 bg-muted/50 rounded-full text-xs text-muted-foreground hover:bg-muted transition-colors cursor-default"
+                    className="px-2.5 sm:px-3 py-1 sm:py-1.5 bg-muted/50 rounded-full text-xs text-muted-foreground hover:bg-muted transition-colors cursor-default"
                   >
                     {example}
                   </div>

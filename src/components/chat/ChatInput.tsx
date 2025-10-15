@@ -33,7 +33,7 @@ export function ChatInput({
   };
 
   return (
-    <div className="border-t border-border bg-card/50 backdrop-blur-sm p-4">
+    <div className="border-t border-border bg-card/50 backdrop-blur-sm p-3 sm:p-4">
       <div className="max-w-4xl mx-auto flex items-end gap-2">
         <Textarea
           value={input}
@@ -41,7 +41,7 @@ export function ChatInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className="min-h-[60px] max-h-[200px] resize-none bg-background/50 border-border/50 focus:border-primary/50"
+          className="min-h-[50px] sm:min-h-[60px] max-h-[200px] resize-none bg-background/50 border-border/50 focus:border-primary/50"
           rows={2}
         />
         <Button
@@ -49,14 +49,14 @@ export function ChatInput({
           disabled={disabled || !input.trim()}
           size="icon"
           className={cn(
-            "h-[60px] w-[60px] shrink-0 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700",
+            "h-[50px] w-[50px] sm:h-[60px] sm:w-[60px] shrink-0 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700",
             !disabled && input.trim() && "animate-pulse-glow"
           )}
         >
           {disabled ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
           ) : (
-            <Send className="w-5 h-5" />
+            <Send className="w-4 h-4 sm:w-5 sm:h-5" />
           )}
         </Button>
       </div>
