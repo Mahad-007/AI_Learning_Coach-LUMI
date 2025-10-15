@@ -25,6 +25,7 @@ import { WhiteboardService } from '@/services/whiteboardService';
 import { AIAssistant } from './AIAssistant';
 import { FriendInvitationComponent } from './FriendInvitation';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTheme } from '@/hooks/use-theme';
 import type { 
   WhiteboardElement, 
   WhiteboardParticipant, 
@@ -46,13 +47,14 @@ interface WhiteboardProps {
 export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle, sessionTopic, onClose }) => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const { isDark } = useTheme();
   const stageRef = useRef<any>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const [elements, setElements] = useState<WhiteboardElement[]>([]);
   const [participants, setParticipants] = useState<WhiteboardParticipant[]>([]);
   const [messages, setMessages] = useState<WhiteboardMessage[]>([]);
   const [currentTool, setCurrentTool] = useState<'pen' | 'brush' | 'eraser' | 'text' | 'shape' | 'select'>('pen');
-  const [currentColor, setCurrentColor] = useState('#000000');
+  const [currentColor, setCurrentColor] = useState(isDark ? '#FFFFFF' : '#000000');
   const [strokeWidth, setStrokeWidth] = useState(2);
   const [isDrawing, setIsDrawing] = useState(false);
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
@@ -66,10 +68,19 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
   const [stageSize, setStageSize] = useState({ width: 1200, height: 800 });
   const [isAnimating, setIsAnimating] = useState(false);
 
+  // Update current color when theme changes
+  useEffect(() => {
+    const themeColor = isDark ? '#FFFFFF' : '#000000';
+    setCurrentColor(themeColor);
+  }, [isDark]);
+
+  // Theme-aware colors
   const colors = [
     '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
     '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
-    '#000000', '#FFFFFF', '#808080', '#FF0000', '#00FF00', '#0000FF'
+    isDark ? '#FFFFFF' : '#000000', // Primary text color based on theme
+    isDark ? '#000000' : '#FFFFFF', // Background color based on theme
+    '#808080', '#FF0000', '#00FF00', '#0000FF'
   ];
 
   // Calculate optimal stage size based on content
@@ -255,7 +266,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
         data: {
           points: [pos.x, pos.y],
           strokeWidth: currentTool === 'eraser' ? strokeWidth * 2 : strokeWidth,
-          strokeColor: currentTool === 'eraser' ? '#FFFFFF' : currentColor,
+          strokeColor: currentTool === 'eraser' ? (isDark ? '#000000' : '#FFFFFF') : currentColor,
           tool: currentTool
         } as DrawingData,
         created_by: user?.id || '',
@@ -458,7 +469,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
         text={data.text}
         fontSize={data.fontSize || 16}
         fontFamily={data.fontFamily || 'Arial'}
-        fill={data.color || '#000000'}
+        fill={data.color || (isDark ? '#FFFFFF' : '#000000')}
         rotation={data.rotation || 0}
         width={data.width || 400} // Set default width to prevent overflow
         wrap="word"
