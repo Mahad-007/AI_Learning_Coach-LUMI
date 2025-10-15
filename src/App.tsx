@@ -8,6 +8,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Navigation } from "./components/Navigation";
 import { Footer } from "./components/Footer";
 import { lazy, Suspense } from "react";
+import { useActivityTracker } from "./hooks/useActivityTracker";
 
 // Eager load critical pages
 import Home from "./pages/Home";
@@ -70,6 +71,9 @@ const queryClient = new QueryClient({
 const AppLayout = () => {
   const location = useLocation();
   const hideFooter = location.pathname === "/chat";
+  
+  // Track user activity for inactivity reminders
+  useActivityTracker();
 
   return (
     <div className="flex flex-col min-h-screen">

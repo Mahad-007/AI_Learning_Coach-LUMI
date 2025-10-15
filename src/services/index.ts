@@ -19,6 +19,7 @@ export { AchievementsService } from './achievementsService';
 export { XPUpdateService } from './xpUpdateService';
 export { FriendsService } from './friendsService';
 export { NotificationsService } from './notificationsService';
+export { InactivityService } from './inactivityService';
 
 // Re-export types
 export type { SignupData, LoginData, AuthResponse, User } from '../types/user';

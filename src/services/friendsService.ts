@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import { NotificationsService } from './notificationsService';
 
 export type FriendUser = { id: string; name: string; username?: string; avatar_url?: string; email?: string };
 export type FriendRequest = { id: string; sender_id: string; receiver_id: string; status: 'pending'|'accepted'|'declined'|'cancelled'; created_at: string };
@@ -61,6 +62,13 @@ export const FriendsService = {
       }
       throw error;
     }
+
+    // Send notification to receiver
+    await NotificationsService.send(receiverId, 'friend_request', {
+      from_user_id: user.id,
+      from_user_name: user.user_metadata?.name || 'Someone',
+      message: 'sent you a friend request'
+    });
   },
 
   async cancelRequest(requestId: string) {
@@ -76,9 +84,28 @@ export const FriendsService = {
   },
 
   async respond(requestId: string, accept: boolean) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
     if (accept) {
+      // Get sender info before accepting
+      const { data: requestData } = await supabase
+        .from('friend_requests')
+        .select('sender_id')
+        .eq('id', requestId)
+        .single();
+
       const { error } = await supabase.rpc('accept_friend_request', { req_id: requestId });
       if (error) throw error;
+
+      // Send notification to sender that their request was accepted
+      if (requestData?.sender_id) {
+        await NotificationsService.send(requestData.sender_id, 'friend_request_accepted', {
+          from_user_id: user.id,
+          from_user_name: user.user_metadata?.name || 'Someone',
+          message: 'accepted your friend request'
+        });
+      }
     } else {
       const { error } = await supabase.from('friend_requests').update({ status: 'declined', responded_at: new Date().toISOString() }).eq('id', requestId);
       if (error) throw error;
