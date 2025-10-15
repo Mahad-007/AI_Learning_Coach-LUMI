@@ -149,6 +149,20 @@
     -moz-appearance: none;
     appearance: none;
   }
+
+  /* Whiteboard mobile optimizations */
+  .whiteboard-canvas {
+    touch-action: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  /* Prevent zoom on double tap for whiteboard */
+  .whiteboard-canvas * {
+    touch-action: none;
+  }
 }
 
 @layer components {
