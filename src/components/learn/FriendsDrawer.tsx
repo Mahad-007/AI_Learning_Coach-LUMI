@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { X, Users as UsersIcon } from 'lucide-react';
 import { FriendsService } from '@/services/friendsService';
+import { ProfilePreview } from '@/components/ProfilePreview';
 
 interface FriendsDrawerProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface FriendsDrawerProps {
 export function FriendsDrawer({ isOpen, onClose }: FriendsDrawerProps) {
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -78,7 +80,7 @@ export function FriendsDrawer({ isOpen, onClose }: FriendsDrawerProps) {
                   ) : (
                     <div className="space-y-3">
                       {friends.map((f) => (
-                        <Card key={f.id} className="p-3 flex items-center justify-between">
+                        <Card key={f.id} className="p-3 flex items-center justify-between hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setSelectedProfile(f.id)}>
                           <div className="flex items-center gap-3">
                             <div className="relative">
                               <Avatar className="w-9 h-9">
@@ -94,7 +96,10 @@ export function FriendsDrawer({ isOpen, onClose }: FriendsDrawerProps) {
                           </div>
                           <div className="flex items-center gap-3">
                             <Badge variant={f.status === 'online' ? 'default' : 'secondary'}>{f.status || 'offline'}</Badge>
-                            <Button size="sm" variant="outline" className="text-destructive border-destructive/40" onClick={() => unfriend(f.id)}>Unfriend</Button>
+                            <Button size="sm" variant="outline" className="text-destructive border-destructive/40" onClick={(e) => {
+                              e.stopPropagation();
+                              unfriend(f.id);
+                            }}>Unfriend</Button>
                           </div>
                         </Card>
                       ))}
@@ -109,6 +114,17 @@ export function FriendsDrawer({ isOpen, onClose }: FriendsDrawerProps) {
           </motion.div>
         </>
       )}
+      
+      {/* Profile Preview */}
+      <ProfilePreview
+        userId={selectedProfile || ''}
+        isOpen={!!selectedProfile}
+        onClose={() => setSelectedProfile(null)}
+        onUnfriend={(userId) => {
+          unfriend(userId);
+          setSelectedProfile(null);
+        }}
+      />
     </AnimatePresence>
   );
 }

@@ -49,6 +49,11 @@ export const FriendsService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
     
+    // Prevent self-friending
+    if (user.id === receiverId) {
+      throw new Error('You cannot send a friend request to yourself');
+    }
+    
     // Check status first
     const status = await this.checkFriendshipStatus(receiverId);
     if (status.isFriend) {
@@ -66,12 +71,17 @@ export const FriendsService = {
       throw error;
     }
 
-    // Send notification to receiver
-    await NotificationsService.send(receiverId, 'friend_request', {
-      from_user_id: user.id,
-      from_user_name: user.user_metadata?.name || 'Someone',
-      message: 'sent you a friend request'
-    });
+    // Send notification to receiver (don't fail the entire operation if notification fails)
+    try {
+      await NotificationsService.send(receiverId, 'friend_request', {
+        from_user_id: user.id,
+        from_user_name: user.user_metadata?.name || 'Someone',
+        message: 'sent you a friend request'
+      });
+    } catch (notificationError) {
+      console.warn('Failed to send friend request notification:', notificationError);
+      // Don't throw - the friend request was created successfully
+    }
   },
 
   async cancelRequest(requestId: string) {
@@ -92,25 +102,39 @@ export const FriendsService = {
 
     if (accept) {
       // Get sender info before accepting
-      const { data: requestData } = await supabase
+      const { data: requestData, error: requestError } = await supabase
         .from('friend_requests')
         .select('sender_id')
         .eq('id', requestId)
+        .eq('receiver_id', user.id) // Ensure user can only respond to requests sent to them
         .single();
+
+      if (requestError) {
+        throw new Error('Friend request not found or you are not authorized to respond to it');
+      }
 
       const { error } = await supabase.rpc('accept_friend_request', { req_id: requestId });
       if (error) throw error;
 
-      // Send notification to sender that their request was accepted
+      // Send notification to sender that their request was accepted (don't fail if notification fails)
       if (requestData?.sender_id) {
-        await NotificationsService.send(requestData.sender_id, 'friend_request_accepted', {
-          from_user_id: user.id,
-          from_user_name: user.user_metadata?.name || 'Someone',
-          message: 'accepted your friend request'
-        });
+        try {
+          await NotificationsService.send(requestData.sender_id, 'friend_request_accepted', {
+            from_user_id: user.id,
+            from_user_name: user.user_metadata?.name || 'Someone',
+            message: 'accepted your friend request'
+          });
+        } catch (notificationError) {
+          console.warn('Failed to send acceptance notification:', notificationError);
+          // Don't throw - the friend request was accepted successfully
+        }
       }
     } else {
-      const { error } = await supabase.from('friend_requests').update({ status: 'declined', responded_at: new Date().toISOString() }).eq('id', requestId);
+      const { error } = await supabase
+        .from('friend_requests')
+        .update({ status: 'declined', responded_at: new Date().toISOString() })
+        .eq('id', requestId)
+        .eq('receiver_id', user.id); // Ensure user can only decline requests sent to them
       if (error) throw error;
     }
   },
@@ -118,10 +142,39 @@ export const FriendsService = {
   async listFriends(): Promise<(FriendUser & { status?: string })[]> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
-    // presence-aware via RPC
-    const { data, error } = await supabase.rpc('get_friends_with_presence', { p_user_id: user.id });
-    if (error) throw error;
-    return (data || []).map((r: any) => ({ id: r.friend_id, name: r.name, username: r.username, avatar_url: r.avatar_url, status: r.status }));
+    
+    try {
+      // Try the RPC function first
+      const { data, error } = await supabase.rpc('get_friends_with_presence', { p_user_id: user.id });
+      if (error) throw error;
+      return (data || []).map((r: any) => ({ id: r.friend_id, name: r.name, username: r.username, avatar_url: r.avatar_url, status: r.status }));
+    } catch (rpcError) {
+      console.warn('RPC get_friends_with_presence failed, falling back to direct query:', rpcError);
+      
+      // Fallback: direct query without presence
+      const { data: friends, error } = await supabase
+        .from('friends')
+        .select(`
+          friend_id,
+          users!friends_friend_id_fkey (
+            id,
+            name,
+            username,
+            avatar_url
+          )
+        `)
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
+      return (friends || []).map((f: any) => ({
+        id: f.friend_id,
+        name: f.users?.name || 'Unknown',
+        username: f.users?.username,
+        avatar_url: f.users?.avatar_url,
+        status: 'offline' // Default status when RPC fails
+      }));
+    }
   },
 
   async listRequests(): Promise<{ sent: FriendRequest[]; received: FriendRequest[] }> {
@@ -151,6 +204,26 @@ export const FriendsService = {
   },
 
   async unfriend(friendId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    
+    // Prevent self-unfriending
+    if (user.id === friendId) {
+      throw new Error('You cannot unfriend yourself');
+    }
+    
+    // Check if users are actually friends before attempting to unfriend
+    const { data: friendship } = await supabase
+      .from('friends')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('friend_id', friendId)
+      .maybeSingle();
+    
+    if (!friendship) {
+      throw new Error('You are not friends with this user');
+    }
+    
     const { error } = await supabase.rpc('unfriend_friend', { p_friend_id: friendId });
     if (error) throw error;
   },

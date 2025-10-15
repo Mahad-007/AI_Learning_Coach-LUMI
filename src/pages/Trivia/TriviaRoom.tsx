@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { TriviaService, TriviaParticipant, TriviaRoom as TriviaRoomType } from "@/services/triviaService";
+import { ProfilePreview } from "@/components/ProfilePreview";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function TriviaRoom() {
@@ -38,6 +39,7 @@ export default function TriviaRoom() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [friends, setFriends] = useState<any[]>([]);
   const [inviting, setInviting] = useState<string | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
 
   const categories = [
     { value: "general", label: "General Knowledge" },
@@ -340,7 +342,7 @@ export default function TriviaRoom() {
             </div>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
               {friends.map((f) => (
-                <Card key={f.id} className="p-4 flex items-center justify-between gap-3">
+                <Card key={f.id} className="p-4 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setSelectedProfile(f.id)}>
                   <div className="flex items-center gap-3">
                     <Avatar className="w-10 h-10"><AvatarImage src={f.avatar_url || undefined} /><AvatarFallback>{(f.name||'?').charAt(0)}</AvatarFallback></Avatar>
                     <div>
@@ -350,7 +352,8 @@ export default function TriviaRoom() {
                       </p>
                     </div>
                   </div>
-                  <Button size="sm" disabled={!!inviting} onClick={async ()=>{
+                  <Button size="sm" disabled={!!inviting} onClick={async (e)=>{
+                    e.stopPropagation();
                     if (!roomId || !user) return;
                     try {
                       setInviting(f.id);
@@ -512,6 +515,13 @@ export default function TriviaRoom() {
           )}
         </Card>
       </div>
+
+      {/* Profile Preview */}
+      <ProfilePreview
+        userId={selectedProfile || ''}
+        isOpen={!!selectedProfile}
+        onClose={() => setSelectedProfile(null)}
+      />
     </div>
   );
 }

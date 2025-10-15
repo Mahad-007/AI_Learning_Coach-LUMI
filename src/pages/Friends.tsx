@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { useDebounce } from '@/hooks/useDebounce';
+import { ProfilePreview } from '@/components/ProfilePreview';
 
 export default function Friends() {
   const { user } = useAuth();
@@ -17,15 +18,28 @@ export default function Friends() {
   const [friends, setFriends] = useState<any[]>([]);
   const [requests, setRequests] = useState<{ sent: any[]; received: any[] }>({ sent: [], received: [] });
   const [loading, setLoading] = useState(false);
+  const [friendsLoading, setFriendsLoading] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
 
   // Debounce the search query for better performance
   const debouncedQuery = useDebounce(query, 500);
 
   const refresh = useCallback(async () => {
-    const [f, r] = await Promise.all([FriendsService.listFriends(), FriendsService.listRequests()]);
-    setFriends(f);
-    setRequests(r);
-  }, []);
+    setFriendsLoading(true);
+    try {
+      console.log('Refreshing friends and requests...');
+      const [f, r] = await Promise.all([FriendsService.listFriends(), FriendsService.listRequests()]);
+      console.log('Friends loaded:', f);
+      console.log('Requests loaded:', r);
+      setFriends(f);
+      setRequests(r);
+    } catch (error) {
+      console.error('Error refreshing friends:', error);
+      toast({ title: "Failed to load friends", description: error instanceof Error ? error.message : 'Unknown error', variant: "destructive" });
+    } finally {
+      setFriendsLoading(false);
+    }
+  }, [toast]);
 
   const handleSearch = useCallback(async () => {
     if (!debouncedQuery.trim()) {
@@ -62,14 +76,24 @@ export default function Friends() {
 
   const sendInviteEmail = async (email: string) => {
     try {
-      await fetch(`/api/send-invite`, {
+      const response = await fetch(`/api/send-invite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to: email, inviterName: user?.name, signupLink: `${window.location.origin}/signup` }),
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       toast({ title: "Invitation sent!", description: `An invitation has been sent to ${email}` });
     } catch (error: any) {
-      toast({ title: "Failed to send invitation", description: error.message, variant: "destructive" });
+      console.error('Failed to send invitation:', error);
+      toast({ 
+        title: "Failed to send invitation", 
+        description: error.message || 'Please try again later', 
+        variant: "destructive" 
+      });
     }
   };
 
@@ -77,16 +101,23 @@ export default function Friends() {
     try {
       await FriendsService.sendFriendRequest(receiverId);
       
-      // Send email notification
+      // Send email notification (don't fail the entire operation if email fails)
       if (receiverEmail) {
-        await fetch(`/api/send-friend-request`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: receiverEmail, senderName: user?.name, link: `${window.location.origin}/friends` }),
-        });
+        try {
+          await fetch(`/api/send-friend-request`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: receiverEmail, senderName: user?.name, link: `${window.location.origin}/friends` }),
+          });
+          toast({ title: "Friend request sent!", description: "The user will be notified via email." });
+        } catch (emailError) {
+          console.warn('Failed to send email notification:', emailError);
+          toast({ title: "Friend request sent!", description: "The user will be notified in the app." });
+        }
+      } else {
+        toast({ title: "Friend request sent!", description: "The user will be notified in the app." });
       }
       
-      toast({ title: "Friend request sent!", description: "The user will be notified via email." });
       await refresh();
       
       // Update friendship status
@@ -224,22 +255,58 @@ export default function Friends() {
       </div>
 
       <Card className="p-3 sm:p-4 mt-6 sm:mt-8">
-        <h2 className="text-lg sm:text-xl font-semibold mb-3">Your Friends</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {friends.map((f) => (
-            <div key={f.id} className="p-3 rounded border bg-card flex items-center justify-between gap-2 sm:gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{f.name} {f.username ? `(@${f.username})` : ''}</div>
-                <Badge variant={f.status === 'online' ? 'default' : 'secondary'} className="text-xs">{f.status || 'offline'}</Badge>
-              </div>
-              <Button size="sm" variant="destructive" onClick={() => unfriend(f.id)} className="shrink-0 text-xs">Unfriend</Button>
-            </div>
-          ))}
-          {friends.length === 0 && (
-            <div className="text-sm text-muted-foreground col-span-full">No friends yet.</div>
-          )}
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg sm:text-xl font-semibold">Your Friends</h2>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={refresh}
+            disabled={friendsLoading}
+          >
+            {friendsLoading ? 'Loading...' : 'Refresh'}
+          </Button>
         </div>
+        
+        {friendsLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-2 text-muted-foreground">Loading friends...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {friends.map((f) => (
+              <div key={f.id} className="p-3 rounded border bg-card flex items-center justify-between gap-2 sm:gap-3 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setSelectedProfile(f.id)}>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{f.name} {f.username ? `(@${f.username})` : ''}</div>
+                  <Badge variant={f.status === 'online' ? 'default' : 'secondary'} className="text-xs">{f.status || 'offline'}</Badge>
+                </div>
+                <Button size="sm" variant="destructive" onClick={(e) => {
+                  e.stopPropagation();
+                  unfriend(f.id);
+                }} className="shrink-0 text-xs">Unfriend</Button>
+              </div>
+            ))}
+            {friends.length === 0 && (
+              <div className="text-sm text-muted-foreground col-span-full text-center py-4">
+                <p>No friends yet.</p>
+                <p className="text-xs mt-1">Search for users above to add friends!</p>
+              </div>
+            )}
+          </div>
+        )}
       </Card>
+
+      {/* Profile Preview */}
+      <ProfilePreview
+        userId={selectedProfile || ''}
+        isOpen={!!selectedProfile}
+        onClose={() => setSelectedProfile(null)}
+        onUnfriend={(userId) => {
+          unfriend(userId);
+          setSelectedProfile(null);
+        }}
+      />
+
     </div>
   );
 }
