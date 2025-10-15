@@ -281,6 +281,11 @@ export class ChatService {
     topic?: string,
     context?: string[]
   ): string {
+    // Content filtering check
+    if (this.containsInappropriateContent(message)) {
+      return `The user's message contains inappropriate content that cannot be addressed. Please politely decline and redirect to educational topics.`;
+    }
+
     let prompt = '';
 
     if (topic) {
@@ -295,6 +300,27 @@ export class ChatService {
     prompt += `Please provide a helpful, educational response that encourages learning and understanding.`;
 
     return prompt;
+  }
+
+  /**
+   * Private helper: Check for inappropriate content
+   */
+  private static containsInappropriateContent(message: string): boolean {
+    const inappropriateKeywords = [
+      // Adult content
+      'sex', 'sexual', 'porn', 'pornography', 'adult', 'explicit', 'nude', 'naked',
+      // Violence
+      'violence', 'kill', 'murder', 'weapon', 'gun', 'bomb', 'terrorist',
+      // Drugs and alcohol
+      'drug', 'cocaine', 'heroin', 'marijuana', 'alcohol', 'drunk', 'high',
+      // Gambling
+      'gambling', 'casino', 'bet', 'poker', 'slot machine',
+      // Other inappropriate content
+      'suicide', 'self-harm', 'hate speech', 'racist', 'discrimination'
+    ];
+
+    const lowerMessage = message.toLowerCase();
+    return inappropriateKeywords.some(keyword => lowerMessage.includes(keyword));
   }
 
   /**

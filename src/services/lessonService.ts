@@ -271,12 +271,19 @@ export class LessonService {
    * Private helper: Build lesson generation prompt
    */
   private static buildLessonPrompt(request: LessonGenerateRequest): string {
+    // Content filtering check
+    if (this.containsInappropriateContent(request.topic) || this.containsInappropriateContent(request.subject)) {
+      throw new Error('The requested topic contains inappropriate content and cannot be used for lesson generation.');
+    }
+
     return `Create a comprehensive educational lesson with the following specifications:
 
 Subject: ${request.subject}
 Topic: ${request.topic}
 Difficulty Level: ${request.difficulty}
 Duration: ${request.duration} minutes
+
+IMPORTANT: This lesson must be appropriate for all ages and focus on educational content only. Do not include any 18+ content, violence, explicit material, or inappropriate topics.
 
 Please generate a structured lesson that includes:
 1. An engaging introduction that captures interest
@@ -295,6 +302,27 @@ Return the response as a JSON object with this exact structure:
   "summary": "brief recap of main points",
   "practice_exercises": ["exercise 1", "exercise 2", ...]
 }`;
+  }
+
+  /**
+   * Private helper: Check for inappropriate content
+   */
+  private static containsInappropriateContent(text: string): boolean {
+    const inappropriateKeywords = [
+      // Adult content
+      'sex', 'sexual', 'porn', 'pornography', 'adult', 'explicit', 'nude', 'naked',
+      // Violence
+      'violence', 'kill', 'murder', 'weapon', 'gun', 'bomb', 'terrorist',
+      // Drugs and alcohol
+      'drug', 'cocaine', 'heroin', 'marijuana', 'alcohol', 'drunk', 'high',
+      // Gambling
+      'gambling', 'casino', 'bet', 'poker', 'slot machine',
+      // Other inappropriate content
+      'suicide', 'self-harm', 'hate speech', 'racist', 'discrimination'
+    ];
+
+    const lowerText = text.toLowerCase();
+    return inappropriateKeywords.some(keyword => lowerText.includes(keyword));
   }
 
   /**
