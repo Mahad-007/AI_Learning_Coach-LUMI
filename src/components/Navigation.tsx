@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { NotificationsService } from '@/services/notificationsService';
 import { useAuth } from "@/contexts/AuthContext";
+import NotificationDropdown from './NotificationDropdown';
 
 const publicNavLinks = [
   { name: "Home", path: "/", icon: Home, type: "link" },
@@ -50,8 +51,10 @@ const authenticatedNavLinks = [
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
-  const location = useLocation();
+  const [showNotifications, setShowNotifications] = useState(false);
   const [notifs, setNotifs] = useState<any[]>([]);
+  const location = useLocation();
+  
   // Load notifications (simple polling for now)
   useEffect(() => {
     let mounted = true;
@@ -65,6 +68,7 @@ export const Navigation = () => {
     const id = setInterval(load, 8000);
     return () => { mounted = false; clearInterval(id); };
   }, []);
+  
   const { isAuthenticated, user, logout } = useAuth();
   
   const navLinks = isAuthenticated ? authenticatedNavLinks : publicNavLinks;
@@ -173,30 +177,26 @@ export const Navigation = () => {
           {/* Auth Section */}
           <div className="hidden md:flex items-center gap-2">
             {/* Notifications */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <span className="sr-only">Notifications</span>
+            <div className="relative">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative"
+                onClick={() => setShowNotifications(!showNotifications)}
+              >
+                <span className="sr-only">Notifications</span>
+                {notifs.filter(n => !n.read_at).length > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-[10px] text-white flex items-center justify-center">
                     {notifs.filter(n => !n.read_at).length}
                   </span>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a6 6 0 00-6 6v3.586l-1.707 1.707A1 1 0 005 15h14a1 1 0 00.707-1.707L18 11.586V8a6 6 0 00-6-6zm0 20a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
-                <div className="px-3 py-2 text-sm font-medium">Notifications</div>
-                {notifs.length === 0 && (
-                  <div className="px-3 py-6 text-center text-sm text-muted-foreground">No notifications</div>
                 )}
-                {notifs.map((n) => (
-                  <DropdownMenuItem key={n.id} className="flex flex-col items-start gap-1">
-                    <div className="text-sm font-medium capitalize">{n.type.replace('_',' ')}</div>
-                    <div className="text-xs text-muted-foreground break-words w-full">{n.payload && (n.payload.message || n.payload.room_code || n.payload.from_name)}</div>
-                    <div className="text-[10px] text-muted-foreground">{new Date(n.created_at).toLocaleString()}</div>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a6 6 0 00-6 6v3.586l-1.707 1.707A1 1 0 005 15h14a1 1 0 00.707-1.707L18 11.586V8a6 6 0 00-6-6zm0 20a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+              </Button>
+              <NotificationDropdown 
+                isOpen={showNotifications} 
+                onClose={() => setShowNotifications(false)} 
+              />
+            </div>
 
             {/* Theme toggle */}
             <Button variant="ghost" size="icon" className="ml-1" onClick={toggleTheme} aria-label="Toggle theme">

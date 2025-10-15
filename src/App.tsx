@@ -39,12 +39,16 @@ import TimeManagement from "./pages/blog/TimeManagement";
 import SpacedRepetition from "./pages/blog/SpacedRepetition";
 import LearningHabits from "./pages/blog/LearningHabits";
 import AIvsTraditionalTutoring from "./pages/blog/AIvsTraditionalTutoring";
+import { useActivityTracker } from "./hooks/useActivityTracker";
 
 const queryClient = new QueryClient();
 
 const AppLayout = () => {
   const location = useLocation();
   const hideFooter = location.pathname === "/chat";
+  
+  // Track user activity for inactivity reminders
+  useActivityTracker();
 
   return (
     <div className="flex flex-col min-h-screen">
