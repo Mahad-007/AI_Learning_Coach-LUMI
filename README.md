@@ -767,6 +767,8 @@ await generateStreamWithPersonaFast(prompt, persona, (chunk) => {
   setMessage(prev => prev + chunk);
 });
 
+
+
 // Structured content
 const quiz = await generateStructuredContent<QuizData>(prompt, persona);
 ```
