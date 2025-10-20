@@ -1,11 +1,12 @@
 import express from 'express';
 import nodemailer from 'nodemailer';
-import { EmailTemplates } from '../src/templates/emailTemplates';
+// For NodeNext/Node16 moduleResolution, use .js extension in TS source imports
+import { EmailTemplates } from '../src/templates/emailTemplates.js';
 
 const router = express.Router();
 
 // Email configuration
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.GMAIL_USER,

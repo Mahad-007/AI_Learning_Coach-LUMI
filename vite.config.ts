@@ -28,7 +28,7 @@ export default defineConfig({
       },
     },
     // Optimize chunk size
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1500,
     // Enable sourcemaps for production debugging
     sourcemap: false,
     // Use esbuild for minification (faster and built-in)
