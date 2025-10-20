@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { 
   CheckCircle2, 
   XCircle, 
@@ -18,7 +19,8 @@ import {
   Zap,
   Target,
   Flame,
-  LayoutDashboard
+  LayoutDashboard,
+  AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -43,6 +45,11 @@ interface LocationState {
   fromChat?: boolean;
   chatContext?: ChatMessage[];
   timestamp?: number;
+  restart?: boolean;
+  quizData?: QuizQuestion[];
+  quizTitle?: string;
+  quizTopic?: string;
+  quizType?: 'from_chat' | 'by_topic';
 }
 
 type Difficulty = "beginner" | "intermediate" | "advanced";
@@ -73,6 +80,10 @@ export default function Quiz() {
   const [earnedXP, setEarnedXP] = useState(0);
   const [leveledUp, setLeveledUp] = useState(false);
 
+  // Tab switching detection
+  const [showTabWarning, setShowTabWarning] = useState(false);
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+
   useEffect(() => {
     if (state?.fromChat && state?.chatContext) {
       // Automatically generate quiz from chat
@@ -80,7 +91,81 @@ export default function Quiz() {
       setQuizTopic('Your Learning');
       generateQuizFromChat(state.chatContext);
     }
+    
+    // Handle quiz restart from tab switch page
+    if (state?.restart && state?.quizData) {
+      setQuizData(state.quizData);
+      setQuizTitle(state.quizTitle);
+      setQuizTopic(state.quizTopic);
+      setQuizType(state.quizType);
+      setMode('active');
+      setCurrentQuestion(0);
+      setSelectedAnswer(null);
+      setShowFeedback(false);
+      setScore(0);
+      setEarnedXP(0);
+      setLeveledUp(false);
+      setTabSwitchCount(0);
+    }
   }, []);
+
+  // Tab switch detection
+  useEffect(() => {
+    if (mode !== 'active') return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && mode === 'active') {
+        setTabSwitchCount(prev => prev + 1);
+        
+        if (tabSwitchCount === 0) {
+          // First switch - show warning
+          setShowTabWarning(true);
+        } else if (tabSwitchCount >= 1) {
+          // Second switch - end quiz
+          endQuizDueToTabSwitch();
+        }
+      }
+    };
+
+    const handleBlur = () => {
+      if (mode === 'active') {
+        setTabSwitchCount(prev => prev + 1);
+        
+        if (tabSwitchCount === 0) {
+          // First switch - show warning
+          setShowTabWarning(true);
+        } else if (tabSwitchCount >= 1) {
+          // Second switch - end quiz
+          endQuizDueToTabSwitch();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [mode, tabSwitchCount]);
+
+  const endQuizDueToTabSwitch = async () => {
+    try {
+      // Navigate to tab switch page with quiz data
+      navigate('/quiz-tab-switch', {
+        state: {
+          quizData,
+          quizTitle,
+          quizTopic,
+          quizType,
+          chatContext: state?.chatContext
+        }
+      });
+    } catch (error) {
+      console.error('Failed to navigate to tab switch page:', error);
+    }
+  };
 
   const generateQuizFromChat = async (chatContext: ChatMessage[]) => {
     setMode("generating");
@@ -693,6 +778,42 @@ Return ONLY valid JSON in this exact format:
     </div>
   );
   }
+
+  // Tab Switch Warning Modal
+  return (
+    <>
+      {mode === 'active' && (
+        <AlertDialog open={showTabWarning} onOpenChange={setShowTabWarning}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                Tab Switch Detected
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                ⚠️ If you switch the tab, the quiz will end. Please stay focused on the quiz to maintain academic integrity.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setShowTabWarning(false)}>
+                Stay on Quiz
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => {
+                  setShowTabWarning(false);
+                  endQuizDueToTabSwitch();
+                }}
+                className="bg-red-500 hover:bg-red-600"
+              >
+                End Quiz
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+    </>
+  );
 
   // Fallback
   return null;

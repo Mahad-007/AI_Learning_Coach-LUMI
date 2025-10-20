@@ -36,6 +36,30 @@ export class NotificationsService {
     });
     if (error) throw error;
   }
+
+  static async markAllRead(): Promise<void> {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .is('read_at', null);
+    if (error) throw error;
+  }
+
+  static async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  }
+
+  static async clearAll(): Promise<void> {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all notifications
+    if (error) throw error;
+  }
 }
 
 

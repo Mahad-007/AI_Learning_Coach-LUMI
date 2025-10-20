@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, Award, BookOpen, TrendingUp, Clock, ArrowRight, Zap, MessageSquare, Brain } from "lucide-react";
+import { Trophy, Award, BookOpen, Clock, ArrowRight, Zap, MessageSquare, Brain, Calendar } from "lucide-react";
 import AOS from "aos";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBackend } from "@/hooks/useBackend";
@@ -13,8 +13,12 @@ import { toast } from "sonner";
 export default function Dashboard() {
   const { user } = useAuth();
   const backend = useBackend();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentDate, setCurrentDate] = useState<string>(new Date().toLocaleDateString(undefined, {
+    weekday: 'long', year: 'numeric', month: 'short', day: 'numeric'
+  }));
 
   useEffect(() => {
     AOS.init({
@@ -22,6 +26,13 @@ export default function Dashboard() {
       once: true,
     });
     loadDashboard();
+
+    const interval = setInterval(() => {
+      setCurrentDate(new Date().toLocaleDateString(undefined, {
+        weekday: 'long', year: 'numeric', month: 'short', day: 'numeric'
+      }));
+    }, 60_000);
+    return () => clearInterval(interval);
   }, []);
 
   const loadDashboard = async () => {
@@ -34,6 +45,14 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLessonsCardClick = () => {
+    navigate('/learn'); // Navigate to learn page
+  };
+
+  const handleBadgesCardClick = () => {
+    navigate('/profile'); // Navigate to profile page for achievements/badges
   };
 
   if (loading || !stats) {
@@ -75,22 +94,40 @@ export default function Dashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <Card className="p-4 sm:p-6 hover:shadow-lg transition-all duration-300" data-aos="zoom-in">
-            <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 mb-2 sm:mb-3 text-primary" />
-            <p className="text-xl sm:text-2xl font-bold mb-1">{stats.xp.total.toLocaleString()}</p>
-            <p className="text-xs sm:text-sm text-muted-foreground">Total XP</p>
-          </Card>
-          
-          <Card className="p-4 sm:p-6 hover:shadow-lg transition-all duration-300" data-aos="zoom-in" data-aos-delay={100}>
+          <Card 
+            className="p-4 sm:p-6 hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-105" 
+            data-aos="zoom-in"
+            onClick={handleLessonsCardClick}
+          >
             <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 mb-2 sm:mb-3 text-secondary" />
             <p className="text-xl sm:text-2xl font-bold mb-1">{stats.lessons.completed}</p>
             <p className="text-xs sm:text-sm text-muted-foreground">Lessons Completed</p>
           </Card>
           
-          <Card className="p-4 sm:p-6 hover:shadow-lg transition-all duration-300 col-span-2 md:col-span-1" data-aos="zoom-in" data-aos-delay={200}>
+          <Card 
+            className="p-4 sm:p-6 hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-105" 
+            data-aos="zoom-in" 
+            data-aos-delay={100}
+            onClick={handleBadgesCardClick}
+          >
             <Award className="w-6 h-6 sm:w-8 sm:h-8 mb-2 sm:mb-3 text-accent" />
             <p className="text-xl sm:text-2xl font-bold mb-1">{stats.badges.total}</p>
             <p className="text-xs sm:text-sm text-muted-foreground">Badges Earned</p>
+          </Card>
+
+          {/* Progress to next level */}
+          <Card 
+            className="p-4 sm:p-6 hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-105" 
+            data-aos="zoom-in" 
+            data-aos-delay={200}
+            onClick={() => navigate('/progress')}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+              <p className="text-xs sm:text-sm text-muted-foreground">Today</p>
+            </div>
+            <p className="text-lg sm:text-2xl font-bold">{currentDate}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Click to view progress calendar</p>
           </Card>
         </div>
 
@@ -170,7 +207,7 @@ export default function Dashboard() {
                           </span>
                           {activity.xp_gained > 0 && (
                             <span className="flex items-center gap-1">
-                              <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                              <Zap className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                               +{activity.xp_gained} XP
                             </span>
                           )}

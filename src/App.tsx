@@ -22,6 +22,8 @@ const Quiz = lazy(() => import("./pages/Quiz"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const Learn = lazy(() => import("./pages/Learn"));
 const Profile = lazy(() => import("./pages/Profile"));
+const ProgressCalendar = lazy(() => import("./pages/ProgressCalendar"));
+const QuizTabSwitch = lazy(() => import("./pages/QuizTabSwitch"));
 const Whiteboard = lazy(() => import("./pages/Whiteboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TriviaLobby = lazy(() => import("./pages/Trivia/TriviaLobby"));
@@ -64,7 +66,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
-      cacheTime: 10 * 60 * 1000, // 10 minutes
+            gcTime: 10 * 60 * 1000, // 10 minutes
       refetchOnWindowFocus: false,
       retry: 1,
     },
@@ -100,7 +102,9 @@ const AppLayout = () => {
             <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
             <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
             <Route path="/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/progress" element={<ProtectedRoute><ProgressCalendar /></ProtectedRoute>} />
+              <Route path="/quiz-tab-switch" element={<ProtectedRoute><QuizTabSwitch /></ProtectedRoute>} />
             <Route path="/whiteboard" element={<ProtectedRoute><Whiteboard /></ProtectedRoute>} />
             
             {/* Static Pages */}
