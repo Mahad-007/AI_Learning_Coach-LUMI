@@ -3,6 +3,12 @@
 ## Overview
 This implementation adds disposable email blocking and email verification to your Lumi app. Users must verify their email before they can log in.
 
+
+
+
+
+
+
 ## Features Implemented
 
 ### ✅ Disposable Email Blocking
