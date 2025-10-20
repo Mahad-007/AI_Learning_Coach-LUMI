@@ -8,6 +8,23 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { useDebounce } from '@/hooks/useDebounce';
 import { ProfilePreview } from '@/components/ProfilePreview';
+import { 
+  Search, 
+  UserPlus, 
+  Users, 
+  UserCheck, 
+  UserX, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  RefreshCw,
+  Mail,
+  Heart,
+  Star,
+  Trophy,
+  Flame
+} from 'lucide-react';
+import AOS from 'aos';
 
 export default function Friends() {
   const { user } = useAuth();
@@ -66,6 +83,10 @@ export default function Friends() {
   }, [debouncedQuery, toast]);
 
   useEffect(() => {
+    AOS.init({
+      duration: 600,
+      once: true,
+    });
     refresh();
   }, [refresh]);
 
@@ -161,152 +182,341 @@ export default function Friends() {
   };
 
   return (
-    <div className="container mx-auto px-4 pt-24 pb-10 max-w-5xl">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Find Friends</h1>
-
-      <Card className="p-3 sm:p-4 mb-6 sm:mb-8">
-        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-          <Input 
-            placeholder="Search by email or username" 
-            value={query} 
-            onChange={(e) => setQuery(e.target.value)} 
-            className="flex-1" 
-          />
-          {loading && <span className="text-xs text-muted-foreground sm:ml-2">Searching...</span>}
+    <div className="min-h-screen pt-20 pb-12">
+      <div className="container mx-auto px-4 max-w-6xl">
+        {/* Header */}
+        <div className="mb-8" data-aos="fade-down">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+            Find Friends
+          </h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            Connect with fellow learners and build your learning community
+          </p>
         </div>
-        {result === null && query && !loading && (
-          <div className="mt-4 text-sm text-muted-foreground">No user found. You can send an invitation.</div>
-        )}
-        {result ? (
-          <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex-1 min-w-0 w-full">
-              <div className="font-medium truncate">{result.name} {result.username ? `(@${result.username})` : ''}</div>
-              <div className="text-sm text-muted-foreground truncate">{result.email}</div>
-              {friendshipStatus && (
-                <div className="text-xs text-muted-foreground mt-1">
-                  {friendshipStatus.isFriend && "✓ Already friends"}
-                  {friendshipStatus.hasPendingRequest && "⏳ Request pending"}
-                  {friendshipStatus.requestStatus === 'declined' && "❌ Request was declined"}
+
+        {/* Search Section */}
+        <Card className="p-6 mb-8 shadow-lg border-2 hover:shadow-xl transition-all duration-300" data-aos="fade-up">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Search className="w-5 h-5 text-primary" />
+            </div>
+            <h2 className="text-xl font-semibold">Search for Friends</h2>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input 
+                placeholder="Search by email or username" 
+                value={query} 
+                onChange={(e) => setQuery(e.target.value)} 
+                className="pl-10 h-11" 
+              />
+            </div>
+            {loading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span>Searching...</span>
+              </div>
+            )}
+          </div>
+          {result === null && query && !loading && (
+            <div className="mt-6 p-4 bg-muted/50 rounded-lg border-2 border-dashed">
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <UserX className="w-5 h-5" />
+                <div>
+                  <p className="font-medium">No user found</p>
+                  <p className="text-sm">You can send an invitation to this email address</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {result ? (
+            <div className="mt-6 p-4 bg-gradient-to-r from-primary/5 to-purple-500/5 rounded-lg border-2 border-primary/20" data-aos="fade-up">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                      <UserCheck className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-lg truncate">{result.name} {result.username ? `(@${result.username})` : ''}</div>
+                      <div className="text-sm text-muted-foreground truncate">{result.email}</div>
+                    </div>
+                  </div>
+                  {friendshipStatus && (
+                    <div className="flex items-center gap-2 text-sm">
+                      {friendshipStatus.isFriend && (
+                        <Badge variant="default" className="bg-green-500">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Already friends
+                        </Badge>
+                      )}
+                      {friendshipStatus.hasPendingRequest && (
+                        <Badge variant="secondary" className="bg-yellow-500">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Request pending
+                        </Badge>
+                      )}
+                      {friendshipStatus.requestStatus === 'declined' && (
+                        <Badge variant="destructive">
+                          <XCircle className="w-3 h-3 mr-1" />
+                          Request declined
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <Button 
+                  onClick={() => sendFriendRequest(result.id, result.email)} 
+                  disabled={isButtonDisabled()}
+                  variant={friendshipStatus?.isFriend ? "secondary" : "default"}
+                  className="w-full sm:w-auto shrink-0"
+                  size="sm"
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  {getButtonText()}
+                </Button>
+              </div>
+            </div>
+          ) : query && !loading ? (
+            <div className="mt-6">
+              <Button 
+                variant="outline" 
+                onClick={() => sendInviteEmail(query)}
+                className="w-full sm:w-auto"
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Send Invitation
+              </Button>
+            </div>
+          ) : null}
+      </Card>
+
+        {/* Requests Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Received Requests */}
+          <Card className="p-6 shadow-lg hover:shadow-xl transition-all duration-300" data-aos="fade-up" data-aos-delay={100}>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-green-500/10 rounded-lg">
+                <UserCheck className="w-5 h-5 text-green-500" />
+              </div>
+              <h2 className="text-xl font-semibold">Received Requests</h2>
+              <Badge variant="secondary" className="ml-auto">{requests.received.length}</Badge>
+            </div>
+            
+            <div className="space-y-4">
+              {requests.received.map((r: any, index: number) => (
+                <div key={r.id} className="p-4 bg-gradient-to-r from-green-500/5 to-emerald-500/5 rounded-lg border border-green-200 hover:shadow-md transition-all duration-300" data-aos="fade-up" data-aos-delay={200 + index * 100}>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-8 h-8 bg-green-500/10 rounded-full flex items-center justify-center">
+                          <UserCheck className="w-4 h-4 text-green-500" />
+                        </div>
+                        <div>
+                          <div className="font-medium truncate">{r.sender?.name || 'Unknown'} {r.sender?.username ? `(@${r.sender.username})` : ''}</div>
+                          <div className="text-sm text-muted-foreground">wants to be your friend</div>
+                        </div>
+                      </div>
+                      <Badge variant={r.status === 'pending' ? 'default' : 'secondary'} className="text-xs">
+                        {r.status === 'pending' ? 'Pending' : r.status}
+                      </Badge>
+                    </div>
+                    {r.status === 'pending' && (
+                      <div className="flex gap-2 w-full sm:w-auto shrink-0">
+                        <Button 
+                          size="sm" 
+                          onClick={() => respond(r.id, true)} 
+                          className="flex-1 sm:flex-none bg-green-500 hover:bg-green-600"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Accept
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => respond(r.id, false)} 
+                          className="flex-1 sm:flex-none"
+                        >
+                          <XCircle className="w-4 h-4 mr-1" />
+                          Decline
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {requests.received.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <UserCheck className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No received requests</p>
+                  <p className="text-sm">Friend requests will appear here</p>
                 </div>
               )}
             </div>
+          </Card>
+
+          {/* Sent Requests */}
+          <Card className="p-6 shadow-lg hover:shadow-xl transition-all duration-300" data-aos="fade-up" data-aos-delay={200}>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <UserPlus className="w-5 h-5 text-blue-500" />
+              </div>
+              <h2 className="text-xl font-semibold">Sent Requests</h2>
+              <Badge variant="secondary" className="ml-auto">{requests.sent.length}</Badge>
+            </div>
+            
+            <div className="space-y-4">
+              {requests.sent.map((r: any, index: number) => (
+                <div key={r.id} className="p-4 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 rounded-lg border border-blue-200 hover:shadow-md transition-all duration-300" data-aos="fade-up" data-aos-delay={300 + index * 100}>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-8 h-8 bg-blue-500/10 rounded-full flex items-center justify-center">
+                          <UserPlus className="w-4 h-4 text-blue-500" />
+                        </div>
+                        <div>
+                          <div className="font-medium truncate">{r.receiver?.name || 'Unknown'} {r.receiver?.username ? `(@${r.receiver.username})` : ''}</div>
+                          <div className="text-sm text-muted-foreground">friend request sent</div>
+                        </div>
+                      </div>
+                      <Badge variant={r.status === 'pending' ? 'default' : r.status === 'accepted' ? 'default' : 'destructive'} className="text-xs">
+                        {r.status === 'pending' ? 'Pending' : r.status}
+                      </Badge>
+                    </div>
+                    {r.status === 'pending' && (
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => FriendsService.cancelRequest(r.id).then(refresh)} 
+                        className="w-full sm:w-auto shrink-0"
+                      >
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Cancel
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {requests.sent.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <UserPlus className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No sent requests</p>
+                  <p className="text-sm">Your friend requests will appear here</p>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+
+        {/* Friends List */}
+        <Card className="p-6 shadow-lg hover:shadow-xl transition-all duration-300" data-aos="fade-up" data-aos-delay={300}>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-500/10 rounded-lg">
+                <Users className="w-5 h-5 text-purple-500" />
+              </div>
+              <h2 className="text-xl font-semibold">Your Friends</h2>
+              <Badge variant="secondary" className="ml-2">{friends.length}</Badge>
+            </div>
             <Button 
-              onClick={() => sendFriendRequest(result.id, result.email)} 
-              disabled={isButtonDisabled()}
-              variant={friendshipStatus?.isFriend ? "secondary" : "default"}
-              className="w-full sm:w-auto shrink-0"
-              size="sm"
+              variant="outline" 
+              size="sm" 
+              onClick={refresh}
+              disabled={friendsLoading}
+              className="hover:bg-primary/10"
             >
-              {getButtonText()}
+              <RefreshCw className={`w-4 h-4 mr-2 ${friendsLoading ? 'animate-spin' : ''}`} />
+              {friendsLoading ? 'Loading...' : 'Refresh'}
             </Button>
           </div>
-        ) : query && !loading ? (
-          <div className="mt-4">
-            <Button variant="outline" onClick={() => sendInviteEmail(query)}>Send Invitation</Button>
-          </div>
-        ) : null}
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <Card className="p-3 sm:p-4">
-          <h2 className="text-lg sm:text-xl font-semibold mb-3">Received Requests</h2>
-          <div className="space-y-3">
-            {requests.received.map((r: any) => (
-              <div key={r.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                <div className="text-sm flex-1 min-w-0 w-full">
-                  <span className="truncate block">From: {r.sender?.name || 'Unknown'} {r.sender?.username ? `(@${r.sender.username})` : ''}</span>
-                  <span className="text-xs text-muted-foreground">Status: {r.status}</span>
-                </div>
-                {r.status === 'pending' && (
-                  <div className="flex gap-2 w-full sm:w-auto shrink-0">
-                    <Button size="sm" onClick={() => respond(r.id, true)} className="flex-1 sm:flex-none">Accept</Button>
-                    <Button size="sm" variant="outline" onClick={() => respond(r.id, false)} className="flex-1 sm:flex-none">Decline</Button>
+          
+          {friendsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading your friends...</p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {friends.map((f, index) => (
+                <div 
+                  key={f.id} 
+                  className="group p-4 rounded-lg border-2 border-transparent hover:border-primary/20 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg transition-all duration-300 cursor-pointer" 
+                  onClick={() => setSelectedProfile(f.id)}
+                  data-aos="fade-up"
+                  data-aos-delay={400 + index * 100}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+                        {f.name?.charAt(0)?.toUpperCase() || 'U'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold truncate">{f.name} {f.username ? `(@${f.username})` : ''}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge 
+                            variant={f.status === 'online' ? 'default' : 'secondary'} 
+                            className={`text-xs ${f.status === 'online' ? 'bg-green-500' : ''}`}
+                          >
+                            <div className={`w-2 h-2 rounded-full mr-1 ${f.status === 'online' ? 'bg-white' : 'bg-muted-foreground'}`}></div>
+                            {f.status || 'offline'}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
-            {requests.received.length === 0 && (
-              <div className="text-sm text-muted-foreground">No received requests</div>
-            )}
-          </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Trophy className="w-4 h-4" />
+                      <span>Level {f.level || 1}</span>
+                      <Flame className="w-4 h-4 ml-2" />
+                      <span>{f.xp || 0} XP</span>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="destructive" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        unfriend(f.id);
+                      }} 
+                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0"
+                    >
+                      <UserX className="w-4 h-4 mr-1" />
+                      Unfriend
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {friends.length === 0 && (
+                <div className="col-span-full text-center py-12">
+                  <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">No friends yet</h3>
+                  <p className="text-muted-foreground mb-4">Start building your learning community!</p>
+                  <p className="text-sm text-muted-foreground">Search for users above to add friends</p>
+                </div>
+              )}
+            </div>
+          )}
         </Card>
 
-        <Card className="p-3 sm:p-4">
-          <h2 className="text-lg sm:text-xl font-semibold mb-3">Sent Requests</h2>
-          <div className="space-y-3">
-            {requests.sent.map((r: any) => (
-              <div key={r.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                <div className="text-sm flex-1 min-w-0 w-full">
-                  <span className="truncate block">To: {r.receiver?.name || 'Unknown'} {r.receiver?.username ? `(@${r.receiver.username})` : ''}</span>
-                  <span className="text-xs text-muted-foreground">Status: {r.status}</span>
-                </div>
-                {r.status === 'pending' && (
-                  <Button size="sm" variant="outline" onClick={() => FriendsService.cancelRequest(r.id).then(refresh)} className="w-full sm:w-auto shrink-0">
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            ))}
-            {requests.sent.length === 0 && (
-              <div className="text-sm text-muted-foreground">No sent requests</div>
-            )}
-          </div>
-        </Card>
+        {/* Profile Preview */}
+        <ProfilePreview
+          userId={selectedProfile || ''}
+          isOpen={!!selectedProfile}
+          onClose={() => setSelectedProfile(null)}
+          onUnfriend={(userId) => {
+            unfriend(userId);
+            setSelectedProfile(null);
+          }}
+        />
       </div>
-
-      <Card className="p-3 sm:p-4 mt-6 sm:mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg sm:text-xl font-semibold">Your Friends</h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={refresh}
-            disabled={friendsLoading}
-          >
-            {friendsLoading ? 'Loading...' : 'Refresh'}
-          </Button>
-        </div>
-        
-        {friendsLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <span className="ml-2 text-muted-foreground">Loading friends...</span>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {friends.map((f) => (
-              <div key={f.id} className="p-3 rounded border bg-card flex items-center justify-between gap-2 sm:gap-3 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setSelectedProfile(f.id)}>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{f.name} {f.username ? `(@${f.username})` : ''}</div>
-                  <Badge variant={f.status === 'online' ? 'default' : 'secondary'} className="text-xs">{f.status || 'offline'}</Badge>
-                </div>
-                <Button size="sm" variant="destructive" onClick={(e) => {
-                  e.stopPropagation();
-                  unfriend(f.id);
-                }} className="shrink-0 text-xs">Unfriend</Button>
-              </div>
-            ))}
-            {friends.length === 0 && (
-              <div className="text-sm text-muted-foreground col-span-full text-center py-4">
-                <p>No friends yet.</p>
-                <p className="text-xs mt-1">Search for users above to add friends!</p>
-              </div>
-            )}
-          </div>
-        )}
-      </Card>
-
-      {/* Profile Preview */}
-      <ProfilePreview
-        userId={selectedProfile || ''}
-        isOpen={!!selectedProfile}
-        onClose={() => setSelectedProfile(null)}
-        onUnfriend={(userId) => {
-          unfriend(userId);
-          setSelectedProfile(null);
-        }}
-      />
-
     </div>
   );
 }
