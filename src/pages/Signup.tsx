@@ -38,12 +38,12 @@ export default function Signup() {
         role: formData.role,
       });
       
-      toast.success("Account created successfully!", {
+      toast.success("Account created successfully! Please check your email to verify your account.", {
         icon: <CheckCircle2 className="w-5 h-5 text-success" />,
       });
 
       setTimeout(() => {
-        navigate("/dashboard");
+        navigate("/verify");
       }, 1000);
     } catch (error) {
       toast.error("Signup failed. Please try again.");

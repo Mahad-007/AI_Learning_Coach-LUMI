@@ -15,6 +15,9 @@ export interface User {
   persona: Persona;
   learning_mode?: LearningMode;
   theme_preference?: ThemePreference;
+  email_verified: boolean;
+  email_verified_at?: string;
+  verification_token?: string;
   created_at: string;
   updated_at: string;
 }
