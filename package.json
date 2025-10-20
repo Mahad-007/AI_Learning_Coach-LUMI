@@ -9,7 +9,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "email:dev": "ts-node src/server/emailServer.ts"
+    "email:dev": "node api/email-server.cjs",
+    "email:start": "node dist/api/email-service.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -52,6 +53,7 @@
     "cmdk": "^1.1.1",
     "cors": "^2.8.5",
     "date-fns": "^3.6.0",
+    "disposable-email-domains": "^1.0.62",
     "embla-carousel-react": "^8.6.0",
     "express": "^4.19.2",
     "framer-motion": "^12.23.24",

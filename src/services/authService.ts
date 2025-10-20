@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { EmailValidation } from '../lib/emailValidation';
 import type { SignupData, LoginData, AuthResponse, User } from '../types/user';
 
 /**
@@ -12,6 +13,12 @@ export class AuthService {
    */
   static async signup(data: SignupData): Promise<AuthResponse> {
     try {
+      // Validate email format and check for disposable emails
+      const emailValidation = EmailValidation.validateEmail(data.email);
+      if (!emailValidation.isValid) {
+        throw new Error(emailValidation.error || 'Invalid email address');
+      }
+
       // Sign up with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
@@ -26,6 +33,9 @@ export class AuthService {
       if (authError) throw authError;
       if (!authData.user) throw new Error('User creation failed');
 
+      // Generate verification token
+      const verificationToken = await this.generateVerificationToken(authData.user.id);
+
       // Create user profile in users table
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -37,6 +47,8 @@ export class AuthService {
           level: 1,
           streak: 0,
           persona: 'friendly',
+          email_verified: false,
+          verification_token: verificationToken,
         })
         .select()
         .single();
@@ -54,6 +66,9 @@ export class AuthService {
 
       // Award first user badge
       await this.awardFirstUserBadge(authData.user.id);
+
+      // Send verification email
+      await this.sendVerificationEmail(data.email, data.name, verificationToken);
 
       return {
         user: userData as User,
@@ -74,6 +89,12 @@ export class AuthService {
    */
   static async login(data: LoginData): Promise<AuthResponse> {
     try {
+      // Validate email format and check for disposable emails
+      const emailValidation = EmailValidation.validateEmail(data.email);
+      if (!emailValidation.isValid) {
+        throw new Error(emailValidation.error || 'Invalid email address');
+      }
+
       // Sign in with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: data.email,
@@ -91,6 +112,15 @@ export class AuthService {
         .single();
 
       if (userError) throw userError;
+
+      // Check if email is verified
+      if (!userData.email_verified) {
+        // Return redirect response for unverified users
+        throw new Error(JSON.stringify({ 
+          redirect: '/verify',
+          message: 'Please verify your email address to continue'
+        }));
+      }
 
       // Ensure leaderboard entry exists (for users created before this fix)
       const { data: leaderboardEntry } = await supabase
@@ -269,6 +299,104 @@ export class AuthService {
       });
     } catch (error) {
       console.error('Failed to award first user badge:', error);
+    }
+  }
+
+  /**
+   * Verify user email with token
+   */
+  static async verifyEmail(token: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data, error } = await supabase.rpc('verify_user_email', {
+        token_value: token
+      });
+
+      if (error) throw error;
+
+      return data;
+    } catch (error: any) {
+      console.error('Email verification error:', error);
+      return { success: false, error: error.message || 'Verification failed' };
+    }
+  }
+
+  /**
+   * Resend verification email
+   */
+  static async resendVerificationEmail(email: string): Promise<void> {
+    try {
+      // Get user by email
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id, name, email_verified')
+        .eq('email', email)
+        .single();
+
+      if (userError || !userData) {
+        throw new Error('User not found');
+      }
+
+      if (userData.email_verified) {
+        throw new Error('Email is already verified');
+      }
+
+      // Generate new verification token
+      const verificationToken = await this.generateVerificationToken(userData.id);
+
+      // Send verification email
+      await this.sendVerificationEmail(email, userData.name, verificationToken);
+    } catch (error: any) {
+      console.error('Resend verification error:', error);
+      throw new Error(error.message || 'Failed to resend verification email');
+    }
+  }
+
+  /**
+   * Generate verification token
+   */
+  private static async generateVerificationToken(userId: string): Promise<string> {
+    try {
+      const { data, error } = await supabase.rpc('generate_verification_token', {
+        user_uuid: userId
+      });
+
+      if (error) throw error;
+      return data;
+    } catch (error: any) {
+      console.error('Generate token error:', error);
+      throw new Error('Failed to generate verification token');
+    }
+  }
+
+  /**
+   * Send verification email
+   */
+  private static async sendVerificationEmail(email: string, name: string, token: string): Promise<void> {
+    try {
+      const emailServiceUrl = process.env.VITE_EMAIL_SERVER_URL || 'http://localhost:4001';
+      
+      const response = await fetch(`${emailServiceUrl}/send-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          name,
+          token,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send verification email');
+      }
+
+      console.log('Verification email sent successfully to:', email);
+    } catch (error: any) {
+      console.error('Send verification email error:', error);
+      // Don't throw error here to avoid breaking signup flow
+      // Email sending failure shouldn't prevent account creation
     }
   }
 

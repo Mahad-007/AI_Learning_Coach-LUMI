@@ -29,6 +29,7 @@ interface AuthContextType {
   signup: (data: { name: string; email: string; password: string; role?: string }) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
+  checkUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -158,6 +159,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       toast.success(`Welcome back, ${response.user.name}!`);
     } catch (error: any) {
+      // Check if it's a verification redirect error
+      try {
+        const errorData = JSON.parse(error.message);
+        if (errorData.redirect === '/verify') {
+          toast.error(errorData.message || 'Please verify your email address');
+          // Redirect to verification page
+          window.location.href = '/verify';
+          return;
+        }
+      } catch (parseError) {
+        // Not a JSON error, handle normally
+      }
+      
       toast.error(error.message || "Login failed");
       throw error;
     }
@@ -171,23 +185,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         name: data.name,
       });
       
-      setUser({
-        id: response.user.id,
-        name: response.user.name,
-        email: response.user.email,
-        username: response.user.username,
-        bio: response.user.bio,
-        role: data.role || "student",
-        xp: response.user.xp,
-        level: response.user.level,
-        avatar: response.user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${response.user.email}`,
-        streak: response.user.streak,
-        persona: response.user.persona,
-        learning_mode: response.user.learning_mode,
-        theme_preference: response.user.theme_preference,
-      });
+      // Don't set user in context until email is verified
+      // The user will be redirected to verification page
       
-      toast.success("Account created successfully! Welcome! 🎉");
+      toast.success("Account created successfully! Please check your email to verify your account. 🎉");
     } catch (error: any) {
       toast.error(error.message || "Signup failed");
       throw error;

@@ -50,6 +50,7 @@ const TimeManagement = lazy(() => import("./pages/blog/TimeManagement"));
 const SpacedRepetition = lazy(() => import("./pages/blog/SpacedRepetition"));
 const LearningHabits = lazy(() => import("./pages/blog/LearningHabits"));
 const AIvsTraditionalTutoring = lazy(() => import("./pages/blog/AIvsTraditionalTutoring"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 
 // Loading component
 const PageLoader = () => (
@@ -92,6 +93,7 @@ const AppLayout = () => {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/reset-success" element={<ResetSuccess />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/verify" element={<VerifyEmail />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
             <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
