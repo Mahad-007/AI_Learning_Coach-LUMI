@@ -17,7 +17,8 @@ import {
   Brain,
   Zap,
   Target,
-  Flame
+  Flame,
+  LayoutDashboard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -95,20 +96,27 @@ export default function Quiz() {
 ${conversation}
 
 Create questions that:
-1. Test key concepts discussed in the conversation
-2. Are clear, specific, and educational
-3. Have 4 options each with only ONE correct answer
-4. Include brief explanations for correct answers
-5. Progress from easier to harder
+1. Have VERY SHORT questions (5-10 words max) - no extra details
+2. Test key concepts from the conversation
+3. Have 4 clear options with only ONE correct answer
+4. Keep explanations brief (1-2 sentences max)
+5. Make questions extremely concise and direct - regardless of topic complexity
+
+IMPORTANT: 
+- Questions must be VERY SHORT (5-10 words maximum) - applies to ALL difficulty levels
+- The correctAnswer must be the INDEX (0, 1, 2, or 3) of the correct option
+- NO long questions - keep them extremely brief
+- Answer options can be longer if needed
+- Even advanced topics need short questions
 
 Return ONLY valid JSON in this exact format:
 {
   "questions": [
     {
-      "question": "Clear question text here?",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "question": "What is X?",
+      "options": ["Option A can be longer", "Option B can be longer", "Option C can be longer", "Option D can be longer"],
       "correctAnswer": 0,
-      "explanation": "Brief explanation of why this is correct"
+      "explanation": "Brief 1-2 sentence explanation"
     }
   ]
 }`;
@@ -116,6 +124,17 @@ Return ONLY valid JSON in this exact format:
       const result = await generateStructuredContent<{ questions: QuizQuestion[] }>(prompt, "scholar");
 
       if (result.questions && result.questions.length > 0) {
+        // Validate and log quiz data for debugging
+        console.log("Generated quiz data:", result.questions);
+        result.questions.forEach((q, i) => {
+          console.log(`Question ${i + 1}:`, {
+            question: q.question,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            explanation: q.explanation
+          });
+        });
+        
         setQuizData(result.questions);
         setMode("active");
         toast.success("Quiz generated from your conversation! 🎉");
@@ -155,17 +174,24 @@ Requirements:
 1. Questions should be ${selectedDifficulty} level - ${difficultyGuide[selectedDifficulty]}
 2. Cover different aspects of ${searchTopic}
 3. Each question has 4 options with only ONE correct answer
-4. Include brief explanations for correct answers
-5. Make questions educational and interesting
+4. Keep explanations brief (1-2 sentences max)
+5. Questions must be VERY SHORT (5-10 words max) - regardless of difficulty level
+
+IMPORTANT: 
+- Questions must be VERY SHORT (5-10 words maximum) - applies to ALL difficulty levels
+- The correctAnswer must be the INDEX (0, 1, 2, or 3) of the correct option
+- NO long questions - keep them extremely brief
+- Answer options can be longer if needed
+- Even advanced topics need short questions
 
 Return ONLY valid JSON in this exact format:
 {
   "questions": [
     {
-      "question": "Clear question text here?",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "question": "What is X?",
+      "options": ["Option A can be longer", "Option B can be longer", "Option C can be longer", "Option D can be longer"],
       "correctAnswer": 0,
-      "explanation": "Brief explanation of why this is correct"
+      "explanation": "Brief 1-2 sentence explanation"
     }
   ]
 }`;
@@ -173,6 +199,17 @@ Return ONLY valid JSON in this exact format:
       const result = await generateStructuredContent<{ questions: QuizQuestion[] }>(prompt, "scholar");
 
       if (result.questions && result.questions.length > 0) {
+        // Validate and log quiz data for debugging
+        console.log("Generated quiz data:", result.questions);
+        result.questions.forEach((q, i) => {
+          console.log(`Question ${i + 1}:`, {
+            question: q.question,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            explanation: q.explanation
+          });
+        });
+        
         setQuizData(result.questions);
         setMode("active");
         toast.success(`${selectedDifficulty} quiz on ${searchTopic} generated! 🎉`);
@@ -195,6 +232,16 @@ Return ONLY valid JSON in this exact format:
     if (selectedAnswer === null) return;
 
     setShowFeedback(true);
+
+    // Debug logging for answer validation
+    const question = quizData[currentQuestion];
+    console.log("Answer validation:", {
+      question: question.question,
+      selectedAnswer,
+      correctAnswer: question.correctAnswer,
+      options: question.options,
+      isCorrect: selectedAnswer === question.correctAnswer
+    });
 
     if (selectedAnswer === quizData[currentQuestion].correctAnswer) {
       setScore(score + 20);
@@ -260,6 +307,10 @@ Return ONLY valid JSON in this exact format:
 
   const handleBackToChat = () => {
     navigate("/chat");
+  };
+
+  const handleGoToDashboard = () => {
+    navigate("/dashboard");
   };
 
   // Selection Screen - Choose quiz type
@@ -499,6 +550,15 @@ Return ONLY valid JSON in this exact format:
             >
               <BookOpen className="w-5 h-5 mr-2" />
               Take Another Quiz
+            </Button>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="w-full"
+              onClick={handleGoToDashboard}
+            >
+              <LayoutDashboard className="w-5 h-5 mr-2" />
+              Go to Dashboard
             </Button>
           </div>
         </Card>
