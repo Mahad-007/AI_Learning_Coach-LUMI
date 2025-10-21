@@ -163,15 +163,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const errorData = JSON.parse(error.message);
         if (errorData.redirect === '/verify') {
-          toast.error(errorData.message || 'Please verify your email address');
-          // Redirect to verification page
-          window.location.href = '/verify';
-          return;
+          // Don't show toast here - let the login page handle it
+          // Throw a specific error that can be caught by the login page
+          throw new Error('VERIFICATION_REQUIRED');
         }
       } catch (parseError) {
         // Not a JSON error, handle normally
+        toast.error(error.message || "Login failed");
+        throw error;
       }
       
+      // If we get here, it means the JSON parsing succeeded but redirect wasn't '/verify'
       toast.error(error.message || "Login failed");
       throw error;
     }

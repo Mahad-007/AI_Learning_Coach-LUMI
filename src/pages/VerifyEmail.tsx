@@ -13,9 +13,9 @@ import { toast } from "sonner";
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { checkUser } = useAuth();
+  const { checkUser, user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error' | 'expired'>('pending');
+  const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error' | 'expired' | 'already_verified'>('pending');
   const [errorMessage, setErrorMessage] = useState('');
   const [email, setEmail] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
@@ -26,8 +26,37 @@ export default function VerifyEmail() {
   useEffect(() => {
     if (token) {
       verifyEmail(token);
+    } else if (user) {
+      // Check if user is already verified when no token is present
+      checkUserVerificationStatus();
+    } else {
+      // If no user is loaded yet, try to check user status
+      checkUserVerificationStatus();
     }
-  }, [token]);
+  }, [token, user]);
+
+  const checkUserVerificationStatus = async () => {
+    try {
+      setLoading(true);
+      await checkUser();
+      
+      // If user is verified, redirect to dashboard
+      if (user?.email_verified) {
+        setVerificationStatus('already_verified');
+        toast.success("Your email is already verified! Redirecting to dashboard...");
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
+      } else {
+        setVerificationStatus('pending');
+      }
+    } catch (error) {
+      console.error('Error checking user verification status:', error);
+      setVerificationStatus('pending');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const verifyEmail = async (verificationToken: string) => {
     try {
@@ -103,6 +132,7 @@ export default function VerifyEmail() {
             {verificationStatus === 'success' && 'Your email has been verified!'}
             {verificationStatus === 'error' && 'Verification failed'}
             {verificationStatus === 'expired' && 'Verification link expired'}
+            {verificationStatus === 'already_verified' && 'Your email is already verified!'}
           </p>
         </div>
 
@@ -110,6 +140,27 @@ export default function VerifyEmail() {
         {loading && (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        )}
+
+        {/* Already Verified State */}
+        {verificationStatus === 'already_verified' && (
+          <div className="space-y-4">
+            <Alert className="border-green-200 bg-green-50">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                Your email has already been verified! You can access all features of Lumi.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="space-y-3">
+              <Button onClick={handleGoToDashboard} className="w-full">
+                Go to Dashboard
+              </Button>
+              <p className="text-sm text-muted-foreground text-center">
+                Redirecting automatically in a few seconds...
+              </p>
+            </div>
           </div>
         )}
 
@@ -234,8 +285,8 @@ export default function VerifyEmail() {
           </div>
         )}
 
-        {/* No Token State */}
-        {!token && verificationStatus === 'pending' && (
+        {/* No Token State - Only show if user is not verified */}
+        {!token && verificationStatus === 'pending' && !user?.email_verified && (
           <div className="space-y-4">
             <Alert>
               <Mail className="h-4 w-4" />

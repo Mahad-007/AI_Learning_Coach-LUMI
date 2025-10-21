@@ -23,8 +23,14 @@ export default function Login() {
       await login(email, password);
       toast.success("Welcome back!");
       navigate("/dashboard");
-    } catch (error) {
-      toast.error("Login failed. Please try again.");
+    } catch (error: any) {
+      if (error.message === 'VERIFICATION_REQUIRED') {
+        // Show verification message and redirect
+        toast.error('Please verify your email address to continue');
+        navigate("/verify");
+      } else {
+        toast.error("Login failed. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }

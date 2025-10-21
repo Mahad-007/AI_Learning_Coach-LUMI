@@ -114,7 +114,7 @@ export class AuthService {
       if (userError) throw userError;
 
       // Check if email is verified
-      if (!userData.email_verified) {
+      if (!userData.email_verified || userData.email_verified === null || userData.email_verified === undefined) {
         // Return redirect response for unverified users
         throw new Error(JSON.stringify({ 
           redirect: '/verify',
