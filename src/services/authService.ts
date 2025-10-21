@@ -379,7 +379,7 @@ export class AuthService {
    */
   private static async sendVerificationEmail(email: string, name: string, token: string): Promise<void> {
     try {
-      const emailServiceUrl = process.env.VITE_EMAIL_SERVER_URL || 'http://localhost:4001';
+      const emailServiceUrl = process.env.VITE_EMAIL_SERVER_URL || 'https://www.lumi-learn.app/api';
       
       console.log('Sending verification email to:', email);
       console.log('Email service URL:', emailServiceUrl);

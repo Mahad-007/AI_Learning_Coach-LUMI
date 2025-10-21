@@ -25,7 +25,7 @@ router.post('/send-verification', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const verificationUrl = `${process.env.VITE_APP_URL || 'http://localhost:5173'}/verify?token=${token}`;
+    const verificationUrl = `${process.env.VITE_APP_URL || 'https://www.lumi-learn.app'}/verify?token=${token}`;
     
     const htmlContent = EmailTemplates.generateVerificationEmail({
       name,
@@ -61,7 +61,7 @@ router.post('/send-password-reset', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const resetUrl = `${process.env.VITE_APP_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
+    const resetUrl = `${process.env.VITE_APP_URL || 'https://www.lumi-learn.app'}/reset-password?token=${token}`;
     
     const htmlContent = EmailTemplates.generatePasswordResetEmail({
       name,
@@ -97,7 +97,7 @@ router.post('/send-friend-invitation', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const invitationUrl = `${process.env.VITE_APP_URL || 'http://localhost:5173'}/signup?invite=${token}`;
+    const invitationUrl = `${process.env.VITE_APP_URL || 'https://www.lumi-learn.app'}/signup?invite=${token}`;
     
     const htmlContent = EmailTemplates.generateFriendInvitationEmail({
       name: email.split('@')[0], // Use email prefix as name if not provided
@@ -134,7 +134,7 @@ router.post('/test-email', async (req, res) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    const testUrl = `${process.env.VITE_APP_URL || 'http://localhost:5173'}/verify?token=test-token`;
+    const testUrl = `${process.env.VITE_APP_URL || 'https://www.lumi-learn.app'}/verify?token=test-token`;
     
     const htmlContent = EmailTemplates.generateVerificationEmail({
       name: 'Test User',

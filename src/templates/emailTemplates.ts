@@ -13,7 +13,7 @@ export interface EmailTemplateData {
 
 export class EmailTemplates {
   private static readonly APP_NAME = 'Lumi';
-  private static readonly APP_URL = process.env.VITE_APP_URL || 'http://localhost:5173';
+  private static readonly APP_URL = process.env.VITE_APP_URL || 'https://www.lumi-learn.app';
   private static readonly LOGO_URL = `${this.APP_URL}/logo.png`;
 
   /**

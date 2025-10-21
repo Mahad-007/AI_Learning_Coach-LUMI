@@ -70,7 +70,7 @@ app.post('/send-verification', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const verificationUrl = `${process.env.VITE_APP_URL || 'http://localhost:5173'}/verify?token=${token}`;
+    const verificationUrl = `${process.env.VITE_APP_URL || 'https://www.lumi-learn.app'}/verify?token=${token}`;
     console.log('Generated verification URL:', verificationUrl);
     
     const htmlContent = generateVerificationEmail(name, verificationUrl);
