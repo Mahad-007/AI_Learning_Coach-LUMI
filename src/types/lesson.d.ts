@@ -87,7 +87,7 @@ export interface QuizQuestion {
   id: string;
   question: string;
   options: string[];
-  correct_answer: number;
+  correct_answer_index: number;
   explanation?: string;
 }
 

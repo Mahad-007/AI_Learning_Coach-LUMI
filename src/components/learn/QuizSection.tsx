@@ -49,7 +49,7 @@ export function QuizSection({ lesson }: QuizSectionProps) {
     if (selectedAnswer === null) return;
 
     const question = questions[currentQuestion];
-    const correct = selectedAnswer === question.correct_answer;
+    const correct = selectedAnswer === question.correct_answer_index;
 
     // Save answer
     setAnswers((prev) => ({

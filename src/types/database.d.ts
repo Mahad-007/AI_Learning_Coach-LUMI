@@ -462,7 +462,7 @@ export interface Database {
 export interface QuizQuestion {
   question: string
   options: string[]
-  correct_answer: string
+  correct_answer_index: number
   explanation?: string
 }
 

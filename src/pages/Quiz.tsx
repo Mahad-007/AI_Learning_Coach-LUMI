@@ -32,7 +32,7 @@ import { useAuth } from "@/contexts/AuthContext";
 interface QuizQuestion {
   question: string;
   options: string[];
-  correctAnswer: number;
+  correct_answer_index: number;
   explanation?: string;
 }
 
@@ -176,51 +176,51 @@ export default function Quiz() {
         .map((msg) => `${msg.role === "user" ? "Student" : "AI"}: ${msg.content}`)
         .join("\n\n");
 
-      const prompt = `Based on this learning conversation, generate a 5-question multiple choice quiz to test the student's understanding:
+      const prompt = `Generate a 5 question multiple-choice quiz based on this learning conversation:
 
 ${conversation}
 
-Create questions that:
-1. Have VERY SHORT questions (5-10 words max) - no extra details
-2. Test key concepts from the conversation
-3. Have 4 clear options with only ONE correct answer
-4. Keep explanations brief (1-2 sentences max)
-5. Make questions extremely concise and direct - regardless of topic complexity
+**CRITICAL:** You must format the entire response as a single, valid JSON array. Do not include any text before or after the JSON.
 
-IMPORTANT: 
-- Questions must be VERY SHORT (5-10 words maximum) - applies to ALL difficulty levels
-- The correctAnswer must be the INDEX (0, 1, 2, or 3) of the correct option
-- NO long questions - keep them extremely brief
-- Answer options can be longer if needed
-- Even advanced topics need short questions
-
-Return ONLY valid JSON in this exact format:
+Each object in the array represents one question and **must** follow this exact structure:
 {
-  "questions": [
-    {
-      "question": "What is X?",
-      "options": ["Option A can be longer", "Option B can be longer", "Option C can be longer", "Option D can be longer"],
-      "correctAnswer": 0,
-      "explanation": "Brief 1-2 sentence explanation"
-    }
-  ]
-}`;
+  "question": "The full text of the question?",
+  "options": [
+    "Text for option A",
+    "Text for option B", 
+    "Text for option C",
+    "Text for option D"
+  ],
+  "correct_answer_index": 2,
+  "explanation": "Brief explanation of why this answer is correct"
+}
 
-      const result = await generateStructuredContent<{ questions: QuizQuestion[] }>(prompt, "scholar");
+**Rules for the quiz content:**
+1. **Question & Options:** The \`question\` must be a clear string. The \`options\` array must contain exactly 4 unique, plausible, and distinct strings.
+2. **Correct Answer:** The \`correct_answer_index\` is the **only** way to indicate the correct answer. It must be a 0-based index (0, 1, 2, or 3).
+3. **Randomization:** The position of the correct answer (the \`correct_answer_index\`) **must be randomized** for each question.
+4. **Explanation:** The \`explanation\` must provide a clear, brief explanation of why the correct answer is right.
+4. **Questions:** Keep questions VERY SHORT (5-10 words max) - no extra details
+5. **Options:** Answer options can be longer if needed
+6. **Test Key Concepts:** Focus on the most important concepts from the conversation
 
-      if (result.questions && result.questions.length > 0) {
+Generate questions that test understanding of key concepts from the conversation above.`;
+
+      const result = await generateStructuredContent<QuizQuestion[]>(prompt, "scholar");
+
+      if (result && result.length > 0) {
         // Validate and log quiz data for debugging
-        console.log("Generated quiz data:", result.questions);
-        result.questions.forEach((q, i) => {
+        console.log("Generated quiz data:", result);
+        result.forEach((q, i) => {
           console.log(`Question ${i + 1}:`, {
             question: q.question,
             options: q.options,
-            correctAnswer: q.correctAnswer,
+            correct_answer_index: q.correct_answer_index,
             explanation: q.explanation
           });
         });
         
-        setQuizData(result.questions);
+        setQuizData(result);
         setMode("active");
         toast.success("Quiz generated from your conversation! 🎉");
       } else {
@@ -251,51 +251,55 @@ Return ONLY valid JSON in this exact format:
         advanced: "challenging questions requiring deep knowledge and critical thinking"
       };
 
-      const prompt = `Generate a 5-question multiple choice quiz about "${searchTopic}" at ${selectedDifficulty} difficulty level.
+      const prompt = `Generate a 5 question multiple-choice quiz about ${searchTopic}.
 
-Difficulty guidelines: ${difficultyGuide[selectedDifficulty]}
+**CRITICAL:** You must format the entire response as a single, valid JSON array. Do not include any text before or after the JSON.
 
-Requirements:
-1. Questions should be ${selectedDifficulty} level - ${difficultyGuide[selectedDifficulty]}
-2. Cover different aspects of ${searchTopic}
-3. Each question has 4 options with only ONE correct answer
-4. Keep explanations brief (1-2 sentences max)
-5. Questions must be VERY SHORT (5-10 words max) - regardless of difficulty level
+Each object in the array represents one question and **must** follow this exact structure:
+{
+  "question": "The full text of the question?",
+  "options": [
+    "Text for option A",
+    "Text for option B", 
+    "Text for option C",
+    "Text for option D"
+  ],
+  "correct_answer_index": 2,
+  "explanation": "Brief explanation of why this answer is correct"
+}
 
-IMPORTANT: 
-- Questions must be VERY SHORT (5-10 words maximum) - applies to ALL difficulty levels
-- The correctAnswer must be the INDEX (0, 1, 2, or 3) of the correct option
-- NO long questions - keep them extremely brief
+**Rules for the quiz content:**
+1. **Question & Options:** The \`question\` must be a clear string. The \`options\` array must contain exactly 4 unique, plausible, and distinct strings.
+2. **Correct Answer:** The \`correct_answer_index\` is the **only** way to indicate the correct answer. It must be a 0-based index (0, 1, 2, or 3).
+3. **Randomization:** The position of the correct answer (the \`correct_answer_index\`) **must be randomized** for each question.
+4. **Explanation:** The \`explanation\` must provide a clear, brief explanation of why the correct answer is right.
+
+**Difficulty Level:** ${selectedDifficulty}
+${difficultyGuide[selectedDifficulty]}
+
+**Requirements:**
+- Questions must be VERY SHORT (5-10 words max) - regardless of difficulty level
+- Cover different aspects of ${searchTopic}
 - Answer options can be longer if needed
 - Even advanced topics need short questions
 
-Return ONLY valid JSON in this exact format:
-{
-  "questions": [
-    {
-      "question": "What is X?",
-      "options": ["Option A can be longer", "Option B can be longer", "Option C can be longer", "Option D can be longer"],
-      "correctAnswer": 0,
-      "explanation": "Brief 1-2 sentence explanation"
-    }
-  ]
-}`;
+Generate questions that test understanding of ${searchTopic} at ${selectedDifficulty} level.`;
 
-      const result = await generateStructuredContent<{ questions: QuizQuestion[] }>(prompt, "scholar");
+      const result = await generateStructuredContent<QuizQuestion[]>(prompt, "scholar");
 
-      if (result.questions && result.questions.length > 0) {
+      if (result && result.length > 0) {
         // Validate and log quiz data for debugging
-        console.log("Generated quiz data:", result.questions);
-        result.questions.forEach((q, i) => {
+        console.log("Generated quiz data:", result);
+        result.forEach((q, i) => {
           console.log(`Question ${i + 1}:`, {
             question: q.question,
             options: q.options,
-            correctAnswer: q.correctAnswer,
+            correct_answer_index: q.correct_answer_index,
             explanation: q.explanation
           });
         });
         
-        setQuizData(result.questions);
+        setQuizData(result);
         setMode("active");
         toast.success(`${selectedDifficulty} quiz on ${searchTopic} generated! 🎉`);
       } else {
@@ -323,12 +327,12 @@ Return ONLY valid JSON in this exact format:
     console.log("Answer validation:", {
       question: question.question,
       selectedAnswer,
-      correctAnswer: question.correctAnswer,
+      correct_answer_index: question.correct_answer_index,
       options: question.options,
-      isCorrect: selectedAnswer === question.correctAnswer
+      isCorrect: selectedAnswer === question.correct_answer_index
     });
 
-    if (selectedAnswer === quizData[currentQuestion].correctAnswer) {
+    if (selectedAnswer === quizData[currentQuestion].correct_answer_index) {
       setScore(score + 20);
     }
 
@@ -655,7 +659,7 @@ Return ONLY valid JSON in this exact format:
   if (mode === "active" && quizData.length > 0) {
     const question = quizData[currentQuestion];
     const progress = ((currentQuestion + 1) / quizData.length) * 100;
-    const isCorrect = selectedAnswer === question.correctAnswer;
+    const isCorrect = selectedAnswer === question.correct_answer_index;
 
   return (
       <div className="min-h-screen px-4 py-24">
@@ -686,7 +690,7 @@ Return ONLY valid JSON in this exact format:
           <div className="space-y-3">
             {question.options.map((option, index) => {
               const isSelected = selectedAnswer === index;
-                const isCorrectAnswer = index === question.correctAnswer;
+                const isCorrectAnswer = index === question.correct_answer_index;
                 const showCorrect = showFeedback && isCorrectAnswer;
                 const showWrong = showFeedback && isSelected && !isCorrect;
 

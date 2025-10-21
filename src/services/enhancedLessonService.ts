@@ -586,22 +586,38 @@ export class EnhancedLessonService {
     persona: Persona = 'friendly'
   ): Promise<QuizQuestion[]> {
     try {
-      const prompt = `Based on the following lesson content, generate ${count} multiple-choice quiz questions at ${difficulty} level. 
-      
-Lesson Content:
+      const prompt = `Generate a ${count} question multiple-choice quiz about the lesson content.
+
+**CRITICAL:** You must format the entire response as a single, valid JSON array. Do not include any text before or after the JSON.
+
+Each object in the array represents one question and **must** follow this exact structure:
+{
+  "question": "The full text of the question?",
+  "options": [
+    "Text for option A",
+    "Text for option B", 
+    "Text for option C",
+    "Text for option D"
+  ],
+  "correct_answer_index": 2,
+  "explanation": "Brief explanation of why this answer is correct"
+}
+
+**Rules for the quiz content:**
+1. **Question & Options:** The \`question\` must be a clear string. The \`options\` array must contain exactly 4 unique, plausible, and distinct strings.
+2. **Correct Answer:** The \`correct_answer_index\` is the **only** way to indicate the correct answer. It must be a 0-based index (0, 1, 2, or 3).
+3. **Randomization:** The position of the correct answer (the \`correct_answer_index\`) **must be randomized** for each question.
+4. **Explanation:** The \`explanation\` must provide a clear, brief explanation of why the correct answer is right.
+
+**Lesson Content:**
 ${lessonContent.substring(0, 2000)} // Limit content length
 
-Generate questions that test understanding of the key concepts. Return as a JSON array with this structure:
-[
-  {
-    "id": "q1",
-    "question": "Question text here?",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "correct_answer": 0,
-    "explanation": "Brief explanation of the correct answer"
-  },
-  ...
-]`;
+**Difficulty Level:** ${difficulty}
+- Beginner: Basic concepts and definitions
+- Intermediate: Application and understanding
+- Advanced: Complex analysis and critical thinking
+
+Generate questions that test understanding of the key concepts from the lesson content above.`;
 
       const questions = await generateStructuredContent<QuizQuestion[]>(prompt, persona);
       return questions;
