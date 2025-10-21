@@ -30,6 +30,7 @@
 
 ---
 
+
 ## 🌟 Overview
 
 Lumi is an AI-powered learning platform that combines personalized education with gamification. It features real-time AI chat tutoring, adaptive lesson generation, collaborative whiteboards, competitive quizzes, and a comprehensive achievement system.
