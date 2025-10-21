@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, XCircle, Mail, Loader2, ArrowLeft } from "lucide-react";
 import { AuthService } from "@/services/authService";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 
 export default function VerifyEmail() {
@@ -22,10 +23,12 @@ export default function VerifyEmail() {
   const [resendSuccess, setResendSuccess] = useState(false);
 
   const token = searchParams.get('token');
+  const type = searchParams.get('type');
 
   useEffect(() => {
-    if (token) {
-      verifyEmail(token);
+    // Handle Supabase auth email verification callback
+    if (token && type === 'signup') {
+      verifyEmailWithSupabase();
     } else if (user) {
       // Check if user is already verified when no token is present
       checkUserVerificationStatus();
@@ -33,7 +36,46 @@ export default function VerifyEmail() {
       // If no user is loaded yet, try to check user status
       checkUserVerificationStatus();
     }
-  }, [token, user]);
+  }, [token, type, user]);
+
+  const verifyEmailWithSupabase = async () => {
+    try {
+      setLoading(true);
+      
+      // Supabase automatically handles email verification when user clicks the link
+      // We just need to check if the user is now verified
+      const { data: { user: authUser }, error } = await supabase.auth.getUser();
+      
+      if (error) {
+        console.error('Auth error:', error);
+        setVerificationStatus('error');
+        setErrorMessage('Verification failed. Please try again.');
+        return;
+      }
+
+      if (authUser?.email_confirmed_at) {
+        setVerificationStatus('success');
+        toast.success("Email verified successfully! Welcome to Lumi! 🎉");
+        
+        // Refresh user context to get the verified user
+        await checkUser();
+        
+        // Redirect to dashboard after 3 seconds
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 3000);
+      } else {
+        setVerificationStatus('error');
+        setErrorMessage('Email verification failed. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('Verification error:', error);
+      setVerificationStatus('error');
+      setErrorMessage('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const checkUserVerificationStatus = async () => {
     try {
@@ -53,39 +95,6 @@ export default function VerifyEmail() {
     } catch (error) {
       console.error('Error checking user verification status:', error);
       setVerificationStatus('pending');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const verifyEmail = async (verificationToken: string) => {
-    try {
-      setLoading(true);
-      const result = await AuthService.verifyEmail(verificationToken);
-      
-      if (result.success) {
-        setVerificationStatus('success');
-        toast.success("Email verified successfully! Welcome to Lumi! 🎉");
-        
-        // Refresh user context to get the verified user
-        await checkUser();
-        
-        // Redirect to dashboard after 3 seconds
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 3000);
-      } else {
-        setVerificationStatus('error');
-        setErrorMessage(result.error || 'Verification failed');
-        
-        if (result.error?.includes('expired')) {
-          setVerificationStatus('expired');
-        }
-      }
-    } catch (error: any) {
-      console.error('Verification error:', error);
-      setVerificationStatus('error');
-      setErrorMessage('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }

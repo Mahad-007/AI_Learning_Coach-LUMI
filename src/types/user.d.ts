@@ -15,9 +15,8 @@ export interface User {
   persona: Persona;
   learning_mode?: LearningMode;
   theme_preference?: ThemePreference;
-  email_verified: boolean;
-  email_verified_at?: string;
-  verification_token?: string;
+  email_verified: boolean; // This will be derived from Supabase auth
+  email_verified_at?: string; // This will be derived from Supabase auth
   created_at: string;
   updated_at: string;
 }

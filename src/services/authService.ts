@@ -4,12 +4,12 @@ import type { SignupData, LoginData, AuthResponse, User } from '../types/user';
 
 /**
  * Authentication Service
- * Handles user registration, login, and profile management
+ * Handles user registration, login, and profile management using Supabase Auth
  */
 
 export class AuthService {
   /**
-   * Register a new user
+   * Register a new user using Supabase Auth
    */
   static async signup(data: SignupData): Promise<AuthResponse> {
     try {
@@ -19,7 +19,7 @@ export class AuthService {
         throw new Error(emailValidation.error || 'Invalid email address');
       }
 
-      // Sign up with Supabase Auth
+      // Sign up with Supabase Auth - this will automatically send verification email
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -33,10 +33,7 @@ export class AuthService {
       if (authError) throw authError;
       if (!authData.user) throw new Error('User creation failed');
 
-      // Generate verification token
-      const verificationToken = await this.generateVerificationToken(authData.user.id);
-
-      // Create user profile in users table
+      // Create user profile in users table (without custom verification fields)
       const { data: userData, error: userError } = await supabase
         .from('users')
         .insert({
@@ -47,8 +44,7 @@ export class AuthService {
           level: 1,
           streak: 0,
           persona: 'friendly',
-          email_verified: false,
-          verification_token: verificationToken,
+          // Remove custom email verification fields - use Supabase auth instead
         })
         .select()
         .single();
@@ -67,9 +63,6 @@ export class AuthService {
       // Award first user badge
       await this.awardFirstUserBadge(authData.user.id);
 
-      // Send verification email
-      await this.sendVerificationEmail(data.email, data.name, verificationToken);
-
       return {
         user: userData as User,
         session: {
@@ -85,7 +78,7 @@ export class AuthService {
   }
 
   /**
-   * Login existing user
+   * Login existing user using Supabase Auth
    */
   static async login(data: LoginData): Promise<AuthResponse> {
     try {
@@ -104,6 +97,15 @@ export class AuthService {
       if (authError) throw authError;
       if (!authData.user) throw new Error('Login failed');
 
+      // Check if email is verified using Supabase auth
+      if (!authData.user.email_confirmed_at) {
+        // Return redirect response for unverified users
+        throw new Error(JSON.stringify({ 
+          redirect: '/verify',
+          message: 'Please verify your email address to continue'
+        }));
+      }
+
       // Fetch user profile
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -112,15 +114,6 @@ export class AuthService {
         .single();
 
       if (userError) throw userError;
-
-      // Check if email is verified
-      if (!userData.email_verified || userData.email_verified === null || userData.email_verified === undefined) {
-        // Return redirect response for unverified users
-        throw new Error(JSON.stringify({ 
-          redirect: '/verify',
-          message: 'Please verify your email address to continue'
-        }));
-      }
 
       // Ensure leaderboard entry exists (for users created before this fix)
       const { data: leaderboardEntry } = await supabase
@@ -154,7 +147,7 @@ export class AuthService {
   }
 
   /**
-   * Get current user profile
+   * Get current user profile using Supabase Auth
    */
   static async getCurrentUser(): Promise<User | null> {
     try {
@@ -170,7 +163,14 @@ export class AuthService {
 
       if (userError) return null;
 
-      return userData as User;
+      // Add email verification status from Supabase auth
+      const userWithVerification = {
+        ...userData,
+        email_verified: !!user.email_confirmed_at,
+        email_verified_at: user.email_confirmed_at,
+      };
+
+      return userWithVerification as User;
     } catch (error) {
       console.error('Get current user error:', error);
       return null;
@@ -303,113 +303,19 @@ export class AuthService {
   }
 
   /**
-   * Verify user email with token
-   */
-  static async verifyEmail(token: string): Promise<{ success: boolean; error?: string }> {
-    try {
-      console.log('Verifying email with token:', token);
-      
-      const { data, error } = await supabase.rpc('verify_user_email', {
-        token_value: token
-      });
-
-      if (error) {
-        console.error('Supabase RPC error:', error);
-        throw error;
-      }
-
-      console.log('Email verification result:', data);
-      return data;
-    } catch (error: any) {
-      console.error('Email verification error:', error);
-      return { success: false, error: error.message || 'Verification failed' };
-    }
-  }
-
-  /**
-   * Resend verification email
+   * Resend verification email using Supabase Auth
    */
   static async resendVerificationEmail(email: string): Promise<void> {
     try {
-      // Get user by email
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id, name, email_verified')
-        .eq('email', email)
-        .single();
-
-      if (userError || !userData) {
-        throw new Error('User not found');
-      }
-
-      if (userData.email_verified) {
-        throw new Error('Email is already verified');
-      }
-
-      // Generate new verification token
-      const verificationToken = await this.generateVerificationToken(userData.id);
-
-      // Send verification email
-      await this.sendVerificationEmail(email, userData.name, verificationToken);
-    } catch (error: any) {
-      console.error('Resend verification error:', error);
-      throw new Error(error.message || 'Failed to resend verification email');
-    }
-  }
-
-  /**
-   * Generate verification token
-   */
-  private static async generateVerificationToken(userId: string): Promise<string> {
-    try {
-      const { data, error } = await supabase.rpc('generate_verification_token', {
-        user_uuid: userId
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
       });
 
       if (error) throw error;
-      return data;
     } catch (error: any) {
-      console.error('Generate token error:', error);
-      throw new Error('Failed to generate verification token');
-    }
-  }
-
-  /**
-   * Send verification email
-   */
-  private static async sendVerificationEmail(email: string, name: string, token: string): Promise<void> {
-    try {
-      const emailServiceUrl = process.env.VITE_EMAIL_SERVER_URL || 'https://www.lumi-learn.app/api';
-      
-      console.log('Sending verification email to:', email);
-      console.log('Email service URL:', emailServiceUrl);
-      console.log('Token:', token);
-      
-      const response = await fetch(`${emailServiceUrl}/send-verification`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          name,
-          token,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Email service error:', errorData);
-        throw new Error(errorData.error || 'Failed to send verification email');
-      }
-
-      const result = await response.json();
-      console.log('Verification email sent successfully:', result);
-    } catch (error: any) {
-      console.error('Send verification email error:', error);
-      // Don't throw error here to avoid breaking signup flow
-      // Email sending failure shouldn't prevent account creation
-      console.warn('Email sending failed, but account was created successfully');
+      console.error('Resend verification error:', error);
+      throw new Error(error.message || 'Failed to resend verification email');
     }
   }
 
