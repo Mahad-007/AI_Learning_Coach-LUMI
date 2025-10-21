@@ -19,6 +19,8 @@ interface User {
   persona?: string;
   learning_mode?: string;
   theme_preference?: string;
+  email_verified?: boolean;
+  email_verified_at?: string;
 }
 
 interface AuthContextType {
@@ -66,9 +68,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           const xpChanged = prev.xp !== updatedUser.xp;
           const levelChanged = prev.level !== updatedUser.level;
+          const emailVerifiedChanged = prev.email_verified !== updatedUser.email_verified;
           
-          if (xpChanged || levelChanged) {
-            console.log(`[AuthContext] XP: ${prev.xp} → ${updatedUser.xp}, Level: ${prev.level} → ${updatedUser.level}`);
+          if (xpChanged || levelChanged || emailVerifiedChanged) {
+            console.log(`[AuthContext] XP: ${prev.xp} → ${updatedUser.xp}, Level: ${prev.level} → ${updatedUser.level}, Email Verified: ${prev.email_verified} → ${updatedUser.email_verified}`);
           }
           
           return {
@@ -82,6 +85,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             username: updatedUser.username,
             bio: updatedUser.bio,
             avatar: updatedUser.avatar_url || prev.avatar,
+            email_verified: updatedUser.email_verified,
+            email_verified_at: updatedUser.email_verified_at,
           };
         });
       })
@@ -123,6 +128,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           persona: currentUser.persona,
           learning_mode: currentUser.learning_mode,
           theme_preference: currentUser.theme_preference,
+          email_verified: currentUser.email_verified,
+          email_verified_at: currentUser.email_verified_at,
         });
       }
     } catch (error: any) {
@@ -155,6 +162,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         persona: response.user.persona,
         learning_mode: response.user.learning_mode,
         theme_preference: response.user.theme_preference,
+        email_verified: response.user.email_verified,
+        email_verified_at: response.user.email_verified_at,
       });
       
       toast.success(`Welcome back, ${response.user.name}!`);
