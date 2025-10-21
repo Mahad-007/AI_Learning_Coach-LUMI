@@ -63,11 +63,16 @@ app.post('/send-verification', async (req, res) => {
   try {
     const { email, name, token } = req.body;
 
+    console.log('Received verification request:', { email, name, token: token ? 'present' : 'missing' });
+
     if (!email || !name || !token) {
+      console.error('Missing required fields:', { email: !!email, name: !!name, token: !!token });
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const verificationUrl = `${process.env.VITE_APP_URL || 'http://localhost:5173'}/verify?token=${token}`;
+    console.log('Generated verification URL:', verificationUrl);
+    
     const htmlContent = generateVerificationEmail(name, verificationUrl);
 
     const mailOptions = {
@@ -78,12 +83,19 @@ app.post('/send-verification', async (req, res) => {
       text: `Hi ${name},\n\nPlease verify your email address by clicking this link: ${verificationUrl}\n\nBest regards,\nThe Lumi Team`,
     };
 
+    console.log('Sending email with options:', { 
+      from: mailOptions.from, 
+      to: mailOptions.to, 
+      subject: mailOptions.subject 
+    });
+
     await transporter.sendMail(mailOptions);
     
+    console.log('Email sent successfully to:', email);
     res.json({ success: true, message: 'Verification email sent successfully' });
   } catch (error) {
     console.error('Send verification email error:', error);
-    res.status(500).json({ error: 'Failed to send verification email' });
+    res.status(500).json({ error: 'Failed to send verification email: ' + error.message });
   }
 });
 
@@ -91,7 +103,10 @@ app.post('/test-email', async (req, res) => {
   try {
     const { email } = req.body;
 
+    console.log('Test email request for:', email);
+
     if (!email) {
+      console.error('Email is required for test');
       return res.status(400).json({ error: 'Email is required' });
     }
 
@@ -99,15 +114,22 @@ app.post('/test-email', async (req, res) => {
       from: `"Lumi Test" <${process.env.GMAIL_USER}>`,
       to: email,
       subject: 'Test Email - Lumi',
-      text: 'This is a test email from Lumi.',
+      text: 'This is a test email from Lumi to verify the email service is working.',
     };
+
+    console.log('Sending test email with options:', { 
+      from: mailOptions.from, 
+      to: mailOptions.to, 
+      subject: mailOptions.subject 
+    });
 
     await transporter.sendMail(mailOptions);
     
+    console.log('Test email sent successfully to:', email);
     res.json({ success: true, message: 'Test email sent successfully' });
   } catch (error) {
     console.error('Test email error:', error);
-    res.status(500).json({ error: 'Failed to send test email' });
+    res.status(500).json({ error: 'Failed to send test email: ' + error.message });
   }
 });
 

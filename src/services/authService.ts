@@ -307,12 +307,18 @@ export class AuthService {
    */
   static async verifyEmail(token: string): Promise<{ success: boolean; error?: string }> {
     try {
+      console.log('Verifying email with token:', token);
+      
       const { data, error } = await supabase.rpc('verify_user_email', {
         token_value: token
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase RPC error:', error);
+        throw error;
+      }
 
+      console.log('Email verification result:', data);
       return data;
     } catch (error: any) {
       console.error('Email verification error:', error);
@@ -375,6 +381,10 @@ export class AuthService {
     try {
       const emailServiceUrl = process.env.VITE_EMAIL_SERVER_URL || 'http://localhost:4001';
       
+      console.log('Sending verification email to:', email);
+      console.log('Email service URL:', emailServiceUrl);
+      console.log('Token:', token);
+      
       const response = await fetch(`${emailServiceUrl}/send-verification`, {
         method: 'POST',
         headers: {
@@ -389,14 +399,17 @@ export class AuthService {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Email service error:', errorData);
         throw new Error(errorData.error || 'Failed to send verification email');
       }
 
-      console.log('Verification email sent successfully to:', email);
+      const result = await response.json();
+      console.log('Verification email sent successfully:', result);
     } catch (error: any) {
       console.error('Send verification email error:', error);
       // Don't throw error here to avoid breaking signup flow
       // Email sending failure shouldn't prevent account creation
+      console.warn('Email sending failed, but account was created successfully');
     }
   }
 
