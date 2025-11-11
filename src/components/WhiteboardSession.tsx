@@ -19,7 +19,9 @@ import {
   Facebook,
   Globe,
   Wand2,
-  RefreshCw
+  RefreshCw,
+  Copy,
+  Check
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { WhiteboardService } from '@/services/whiteboardService';
@@ -27,12 +29,16 @@ import { Whiteboard } from './Whiteboard';
 import type { WhiteboardSession, WhiteboardSettings } from '@/types/whiteboard';
 import { toast } from 'sonner';
 
-export const WhiteboardSession: React.FC = () => {
+export const WhiteboardSessionComponent: React.FC = () => {
   const { user } = useAuth();
   const [sessions, setSessions] = useState<WhiteboardSession[]>([]);
-  const [currentSession, setCurrentSession] = useState<WhiteboardSession | null>(null);
+  const [activeSession, setActiveSession] = useState<WhiteboardSession | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [showJoinDialog, setShowJoinDialog] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [isJoining, setIsJoining] = useState(false);
+  const [copiedCodes, setCopiedCodes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   // Create session form
@@ -40,6 +46,7 @@ export const WhiteboardSession: React.FC = () => {
     title: '',
     topic: '',
     max_participants: 10,
+    generateCode: false, // New field for code generation
     settings: {
       allow_drawing: true,
       allow_text: true,
@@ -90,10 +97,27 @@ export const WhiteboardSession: React.FC = () => {
       // Reload sessions to get the latest data
       await loadSessions();
       setShowCreateDialog(false);
+      
+      // Show success message with room code if generated
+      if (session.roomCode) {
+        toast.success(
+          `Session created! Room Code: ${session.roomCode}`,
+          { 
+            description: "Share this code with your friends to let them join",
+            duration: 8000
+          }
+        );
+        // Also copy the code to clipboard
+        navigator.clipboard.writeText(session.roomCode);
+      } else {
+        toast.success('Session created successfully!');
+      }
+      
       setNewSession({
         title: '',
         topic: '',
         max_participants: 10,
+        generateCode: false,
         settings: {
           allow_drawing: true,
           allow_text: true,
@@ -103,7 +127,6 @@ export const WhiteboardSession: React.FC = () => {
           recording_enabled: false
         }
       });
-      toast.success('Session created successfully!');
     } catch (error: any) {
       console.error('Error creating session:', error);
       toast.error(error.message || 'Failed to create session');
@@ -116,7 +139,7 @@ export const WhiteboardSession: React.FC = () => {
       await WhiteboardService.joinSession(sessionId);
       const session = sessions.find(s => s.id === sessionId);
       if (session) {
-        setCurrentSession(session);
+        setActiveSession(session);
         toast.success('Joined session successfully!');
       }
     } catch (error: any) {
@@ -125,7 +148,7 @@ export const WhiteboardSession: React.FC = () => {
         // User is already a participant, just open the session
         const session = sessions.find(s => s.id === sessionId);
         if (session) {
-          setCurrentSession(session);
+          setActiveSession(session);
           toast.success('Opening session...');
         }
       } else {
@@ -147,11 +170,20 @@ export const WhiteboardSession: React.FC = () => {
 
   const handleInviteFriends = async (sessionId: string) => {
     try {
-      await WhiteboardService.inviteFriend({
-        sessionId,
-        invitationType: 'global'
-      });
-      toast.success('Invitations sent successfully!');
+      const session = sessions.find(s => s.id === sessionId);
+      if (session?.room_code) {
+        // Show a more prominent dialog with the room code
+        setShowInviteDialog(true);
+        // Set the active session for the invite dialog
+        setActiveSession(session);
+      } else {
+        // Fallback to the original invitation system
+        await WhiteboardService.inviteFriend({
+          sessionId,
+          invitationType: 'global'
+        });
+        toast.success('Invitations sent successfully!');
+      }
     } catch (error) {
       console.error('Error sending invitations:', error);
       toast.error('Failed to send invitations');
@@ -175,6 +207,40 @@ export const WhiteboardSession: React.FC = () => {
     }
   };
 
+  const handleJoinByCode = async () => {
+    if (!joinCode.trim()) {
+      toast.error('Please enter a session code');
+      return;
+    }
+
+    setIsJoining(true);
+    try {
+      const { session, participant } = await WhiteboardService.joinSessionByCode(joinCode.toUpperCase());
+      setActiveSession(session);
+      setShowJoinDialog(false);
+      setJoinCode('');
+      toast.success(`Joined "${session.title}" successfully!`);
+    } catch (error: any) {
+      console.error('Error joining session by code:', error);
+      toast.error(error.message || 'Failed to join session');
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCodes(prev => new Set(prev).add(code));
+    toast.success('Session code copied!');
+    setTimeout(() => {
+      setCopiedCodes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(code);
+        return newSet;
+      });
+    }, 2000);
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -185,34 +251,75 @@ export const WhiteboardSession: React.FC = () => {
     });
   };
 
-  if (currentSession) {
+  if (activeSession) {
     return (
       <Whiteboard 
-        sessionId={currentSession.id} 
-        sessionTitle={currentSession.title}
-        sessionTopic={currentSession.topic}
-        onClose={() => setCurrentSession(null)} 
+        sessionId={activeSession.id} 
+        sessionTitle={activeSession.title}
+        sessionTopic={activeSession.topic}
+        onClose={() => setActiveSession(null)} 
       />
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background pt-20">
       <div className="container mx-auto p-6 max-w-7xl">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold">Interactive Whiteboard</h1>
-            <p className="text-gray-600">Create collaborative learning sessions with AI assistance</p>
-            {/* Debug info - remove this later */}
-            <p className="text-xs text-gray-400 mt-1">
-              Debug: Loading: {loading.toString()}, Sessions: {sessions.length}
-            </p>
+            <p className="text-muted-foreground">Create collaborative learning sessions with AI assistance</p>
+            {/* Debug info removed */}
           </div>
           <div className="flex space-x-2">
             <Button variant="outline" onClick={loadSessions} disabled={loading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
+            <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Users className="h-4 w-4 mr-2" />
+                  Join by Code
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Join Whiteboard Session</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="joinCode">Session Code</Label>
+                    <Input
+                      id="joinCode"
+                      value={joinCode}
+                      onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                      placeholder="Enter 6-character code (e.g., 7XK3P)"
+                      maxLength={6}
+                      className="text-center text-xl font-bold tracking-widest uppercase"
+                    />
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setShowJoinDialog(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleJoinByCode}
+                      disabled={isJoining || joinCode.length < 5}
+                    >
+                      {isJoining ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                          Joining...
+                        </>
+                      ) : (
+                        'Join Session'
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
               <Button>
@@ -259,6 +366,19 @@ export const WhiteboardSession: React.FC = () => {
                       <SelectItem value="50">50</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={newSession.generateCode}
+                      onChange={(e) => setNewSession(prev => ({ ...prev, generateCode: e.target.checked }))}
+                    />
+                    <span className="text-sm font-medium">Generate join code for friends</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Creates a 6-character code that friends can use to join your session
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label>Session Settings</Label>
@@ -325,7 +445,7 @@ export const WhiteboardSession: React.FC = () => {
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -338,22 +458,43 @@ export const WhiteboardSession: React.FC = () => {
                       {session.is_active ? 'Active' : 'Inactive'}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600">{session.topic}</p>
+                  <p className="text-sm text-muted-foreground">{session.topic}</p>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex items-center text-sm text-gray-500">
+                    <div className="flex items-center text-sm text-muted-foreground">
                       <Users className="h-4 w-4 mr-2" />
                       {session.current_participants}/{session.max_participants} participants
                     </div>
-                    <div className="flex items-center text-sm text-gray-500">
+                    <div className="flex items-center text-sm text-muted-foreground">
                       <Clock className="h-4 w-4 mr-2" />
                       {formatDate(session.created_at)}
                     </div>
-                    <div className="flex items-center text-sm text-gray-500">
+                    <div className="flex items-center text-sm text-muted-foreground">
                       <span className="mr-2">Host:</span>
                       <span className="font-medium">{session.host_name}</span>
                     </div>
+                    
+                    {session.room_code && (
+                      <div className="flex items-center justify-between bg-muted p-2 rounded-lg">
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Join Code:</span>
+                          <span className="ml-2 font-bold text-lg tracking-widest text-foreground">{session.room_code}</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleCopyCode(session.room_code!)}
+                          className="h-8 w-8 p-0"
+                        >
+                          {copiedCodes.has(session.room_code!) ? (
+                            <Check className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
+                    )}
                     
                     <div className="space-y-2 pt-2">
                       <div className="flex space-x-2">
@@ -381,7 +522,7 @@ export const WhiteboardSession: React.FC = () => {
                           className="flex-1"
                         >
                           <Users className="h-4 w-4 mr-1" />
-                          Add Friends
+                          {session.room_code ? 'Share Code' : 'Add Friends'}
                         </Button>
                         {session.host_id === user?.id && (
                           <Button 
@@ -403,11 +544,11 @@ export const WhiteboardSession: React.FC = () => {
 
         {sessions.length === 0 && !loading && (
           <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
+            <div className="text-muted-foreground mb-4">
               <Users className="h-12 w-12 mx-auto" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No sessions yet</h3>
-            <p className="text-gray-500 mb-4">Create your first interactive whiteboard session to start teaching!</p>
+            <h3 className="text-lg font-medium text-foreground mb-2">No sessions yet</h3>
+            <p className="text-muted-foreground mb-4">Create your first interactive whiteboard session to start teaching!</p>
             <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Your First Session
@@ -417,56 +558,102 @@ export const WhiteboardSession: React.FC = () => {
 
         {/* Invite Dialog */}
         <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Invite Friends</DialogTitle>
+              <DialogTitle>Share Session Code</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
-                <Label>Invitation Type</Label>
-                <Select
-                  value={inviteData.invitationType}
-                  onValueChange={(value: 'global' | 'facebook') => 
-                    setInviteData(prev => ({ ...prev, invitationType: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="global">
-                      <div className="flex items-center">
-                        <Globe className="h-4 w-4 mr-2" />
-                        Global Search
+              {activeSession?.room_code ? (
+                <>
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Share this code with your friends to let them join your whiteboard session:
+                    </p>
+                    <div className="bg-muted p-4 rounded-lg border-2 border-dashed border-border">
+                      <p className="text-xs text-muted-foreground mb-2">Session Code</p>
+                      <div className="flex items-center justify-center gap-3">
+                        <span className="text-3xl font-bold tracking-widest text-foreground">
+                          {activeSession.room_code}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCopyCode(activeSession.room_code!)}
+                          className="h-8 w-8 p-0"
+                        >
+                          {copiedCodes.has(activeSession.room_code!) ? (
+                            <Check className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </Button>
                       </div>
-                    </SelectItem>
-                    <SelectItem value="facebook">
-                      <div className="flex items-center">
-                        <Facebook className="h-4 w-4 mr-2" />
-                        Facebook Friends
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="message">Invitation Message</Label>
-                <Textarea
-                  id="message"
-                  value={inviteData.message}
-                  onChange={(e) => setInviteData(prev => ({ ...prev, message: e.target.value }))}
-                  placeholder="Add a personal message..."
-                  rows={3}
-                />
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => handleInviteFriends(currentSession?.id || '')}>
-                  Send Invitations
-                </Button>
-              </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      Friends can use the "Join by Code" button to enter this code
+                    </p>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
+                      Close
+                    </Button>
+                    <Button onClick={() => {
+                      navigator.clipboard.writeText(activeSession.room_code!);
+                      toast.success('Code copied to clipboard!');
+                    }}>
+                      Copy Code
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <Label>Invitation Type</Label>
+                    <Select
+                      value={inviteData.invitationType}
+                      onValueChange={(value: 'global' | 'facebook') => 
+                        setInviteData(prev => ({ ...prev, invitationType: value }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="global">
+                          <div className="flex items-center">
+                            <Globe className="h-4 w-4 mr-2" />
+                            Global Search
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="facebook">
+                          <div className="flex items-center">
+                            <Facebook className="h-4 w-4 mr-2" />
+                            Facebook Friends
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="message">Invitation Message</Label>
+                    <Textarea
+                      id="message"
+                      value={inviteData.message}
+                      onChange={(e) => setInviteData(prev => ({ ...prev, message: e.target.value }))}
+                      placeholder="Add a personal message..."
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={() => handleInviteFriends(activeSession?.id || '')}>
+                      Send Invitations
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           </DialogContent>
         </Dialog>
@@ -474,3 +661,5 @@ export const WhiteboardSession: React.FC = () => {
     </div>
   );
 };
+
+export default WhiteboardSessionComponent;

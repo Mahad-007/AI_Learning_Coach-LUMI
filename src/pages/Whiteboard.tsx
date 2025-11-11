@@ -1,8 +1,8 @@
 import React from 'react';
-import { WhiteboardSession } from '@/components/WhiteboardSession';
+import { WhiteboardSessionComponent } from '@/components/WhiteboardSession';
 
 const WhiteboardPage: React.FC = () => {
-  return <WhiteboardSession />;
+  return <WhiteboardSessionComponent />;
 };
 
 export default WhiteboardPage;

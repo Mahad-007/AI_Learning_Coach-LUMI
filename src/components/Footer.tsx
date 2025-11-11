@@ -9,11 +9,9 @@ export const Footer = () => {
           {/* Brand */}
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="p-2 bg-gradient-primary rounded-lg shadow-md group-hover:shadow-glow transition-all duration-300">
-                <Brain className="w-6 h-6 text-white" />
-              </div>
+              <img src="/logo.png" alt="Lumi Logo" className="w-14 h-14" />
               <span className="text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">
-                AI Learning Coach
+                Lumi
               </span>
             </Link>
             <p className="text-sm text-muted-foreground">
@@ -100,7 +98,7 @@ export const Footer = () => {
         </div>
 
         <div className="mt-12 pt-8 border-t border-border text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} AI Learning Coach. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Lumi. All rights reserved.</p>
         </div>
       </div>
     </footer>

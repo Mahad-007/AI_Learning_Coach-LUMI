@@ -21,6 +21,7 @@ import { WhiteboardService } from '@/services/whiteboardService';
 import { ChatService } from '@/services/chatService';
 import { generateStructuredContent } from '@/lib/geminiClient';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/hooks/use-theme';
 import type { WhiteboardElement } from '@/types/whiteboard';
 import { toast } from 'sonner';
 
@@ -36,6 +37,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ sessionId, topic, onAd
   const [userRequest, setUserRequest] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const { user } = useAuth();
+  const { isDark } = useTheme();
 
   const teachingSuggestions = [
     `Create a mind map for ${topic}`,
@@ -66,7 +68,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ sessionId, topic, onAd
               "data": {
                 "points": [x1, y1, x2, y2, x3, y3, ...],
                 "strokeWidth": 3,
-                "strokeColor": "#1976D2",
+                "strokeColor": isDark ? "#64B5F6" : "#1976D2",
                 "tool": "pen"
               }
             },
@@ -78,7 +80,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ sessionId, topic, onAd
                 "y": 100,
                 "width": 150,
                 "fontSize": 14,
-                "color": "#000000"
+                "color": isDark ? "#FFFFFF" : "#000000"
               }
             }
           ]
@@ -88,7 +90,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ sessionId, topic, onAd
         - Create flowchart shapes using drawing elements (rectangles, diamonds, circles)
         - Use drawing type with points array to create shapes
         - Add text labels for each shape using text elements
-        - Use different colors for different types of shapes (rectangles: #1976D2, diamonds: #F57C00, circles: #2E7D32)
+        - Use different colors for different types of shapes (rectangles: ${isDark ? '#64B5F6' : '#1976D2'}, diamonds: ${isDark ? '#FFB74D' : '#F57C00'}, circles: ${isDark ? '#81C784' : '#2E7D32'})
         - Space shapes with at least 200px between them
         - Start at position (100, 100) and expand horizontally/vertically
         - Use strokeWidth 3-4 for clear visibility
@@ -148,7 +150,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ sessionId, topic, onAd
             width: 400, // Added width to prevent overflow
             fontSize: 16,
             fontFamily: 'Arial',
-            color: '#333333',
+            color: isDark ? '#E0E0E0' : '#333333',
             rotation: 0
           },
           created_by: 'ai-assistant',

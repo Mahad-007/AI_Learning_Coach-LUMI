@@ -59,7 +59,7 @@ export default function TermsOfService() {
           <h2 className="text-2xl font-bold mb-4">Agreement to Terms</h2>
           <div className="prose prose-sm max-w-none text-muted-foreground space-y-4">
             <p>
-              These Terms of Service ("Terms") govern your access to and use of AI Learning Coach's website, applications, and services (collectively, the "Services"). By accessing or using our Services, you agree to be bound by these Terms.
+              These Terms of Service ("Terms") govern your access to and use of Lumi's website, applications, and services (collectively, the "Services"). By accessing or using our Services, you agree to be bound by these Terms.
             </p>
             <p>
               If you do not agree to these Terms, you may not access or use our Services. We reserve the right to modify these Terms at any time, and will notify you of significant changes.
@@ -147,7 +147,7 @@ export default function TermsOfService() {
               <h3 className="text-xl font-bold mb-4">3. Intellectual Property</h3>
               <div className="space-y-3 text-muted-foreground">
                 <p>
-                  All content on our Services, including text, graphics, logos, software, and AI-generated content, is owned by or licensed to AI Learning Coach and protected by intellectual property laws.
+                  All content on our Services, including text, graphics, logos, software, and AI-generated content, is owned by or licensed to Lumi and protected by intellectual property laws.
                 </p>
                 <p>
                   <strong>Your Content:</strong> You retain ownership of any content you submit. By submitting content, you grant us a license to use, modify, and display it as necessary to provide our Services.
@@ -188,7 +188,7 @@ export default function TermsOfService() {
                   <strong>AS IS:</strong> Our Services are provided "as is" without warranties of any kind, either express or implied.
                 </p>
                 <p>
-                  <strong>Educational Tool:</strong> AI Learning Coach is an educational supplement, not a replacement for formal education or professional advice.
+                  <strong>Educational Tool:</strong> Lumi is an educational supplement, not a replacement for formal education or professional advice.
                 </p>
                 <p>
                   <strong>AI Accuracy:</strong> While we strive for accuracy, AI-generated content may contain errors. Always verify important information.
@@ -241,7 +241,7 @@ export default function TermsOfService() {
           </p>
           <div className="text-muted-foreground space-y-2">
             <p>• Email: legal@ailearningcoach.com</p>
-            <p>• Mail: AI Learning Coach, Legal Department, 123 Innovation Drive, San Francisco, CA 94102</p>
+            <p>• Mail: Lumi, Legal Department, 123 Innovation Drive, San Francisco, CA 94102</p>
           </div>
         </Card>
       </div>

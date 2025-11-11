@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { 
   CheckCircle2, 
   XCircle, 
@@ -17,7 +18,9 @@ import {
   Brain,
   Zap,
   Target,
-  Flame
+  Flame,
+  LayoutDashboard,
+  AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -29,7 +32,7 @@ import { useAuth } from "@/contexts/AuthContext";
 interface QuizQuestion {
   question: string;
   options: string[];
-  correctAnswer: number;
+  correct_answer_index: number;
   explanation?: string;
 }
 
@@ -42,6 +45,11 @@ interface LocationState {
   fromChat?: boolean;
   chatContext?: ChatMessage[];
   timestamp?: number;
+  restart?: boolean;
+  quizData?: QuizQuestion[];
+  quizTitle?: string;
+  quizTopic?: string;
+  quizType?: 'from_chat' | 'by_topic';
 }
 
 type Difficulty = "beginner" | "intermediate" | "advanced";
@@ -72,6 +80,10 @@ export default function Quiz() {
   const [earnedXP, setEarnedXP] = useState(0);
   const [leveledUp, setLeveledUp] = useState(false);
 
+  // Tab switching detection
+  const [showTabWarning, setShowTabWarning] = useState(false);
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+
   useEffect(() => {
     if (state?.fromChat && state?.chatContext) {
       // Automatically generate quiz from chat
@@ -79,7 +91,81 @@ export default function Quiz() {
       setQuizTopic('Your Learning');
       generateQuizFromChat(state.chatContext);
     }
+    
+    // Handle quiz restart from tab switch page
+    if (state?.restart && state?.quizData) {
+      setQuizData(state.quizData);
+      setQuizTitle(state.quizTitle);
+      setQuizTopic(state.quizTopic);
+      setQuizType(state.quizType);
+      setMode('active');
+      setCurrentQuestion(0);
+      setSelectedAnswer(null);
+      setShowFeedback(false);
+      setScore(0);
+      setEarnedXP(0);
+      setLeveledUp(false);
+      setTabSwitchCount(0);
+    }
   }, []);
+
+  // Tab switch detection
+  useEffect(() => {
+    if (mode !== 'active') return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && mode === 'active') {
+        setTabSwitchCount(prev => prev + 1);
+        
+        if (tabSwitchCount === 0) {
+          // First switch - show warning
+          setShowTabWarning(true);
+        } else if (tabSwitchCount >= 1) {
+          // Second switch - end quiz
+          endQuizDueToTabSwitch();
+        }
+      }
+    };
+
+    const handleBlur = () => {
+      if (mode === 'active') {
+        setTabSwitchCount(prev => prev + 1);
+        
+        if (tabSwitchCount === 0) {
+          // First switch - show warning
+          setShowTabWarning(true);
+        } else if (tabSwitchCount >= 1) {
+          // Second switch - end quiz
+          endQuizDueToTabSwitch();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [mode, tabSwitchCount]);
+
+  const endQuizDueToTabSwitch = async () => {
+    try {
+      // Navigate to tab switch page with quiz data
+      navigate('/quiz-tab-switch', {
+        state: {
+          quizData,
+          quizTitle,
+          quizTopic,
+          quizType,
+          chatContext: state?.chatContext
+        }
+      });
+    } catch (error) {
+      console.error('Failed to navigate to tab switch page:', error);
+    }
+  };
 
   const generateQuizFromChat = async (chatContext: ChatMessage[]) => {
     setMode("generating");
@@ -90,33 +176,51 @@ export default function Quiz() {
         .map((msg) => `${msg.role === "user" ? "Student" : "AI"}: ${msg.content}`)
         .join("\n\n");
 
-      const prompt = `Based on this learning conversation, generate a 5-question multiple choice quiz to test the student's understanding:
+      const prompt = `Generate a 5 question multiple-choice quiz based on this learning conversation:
 
 ${conversation}
 
-Create questions that:
-1. Test key concepts discussed in the conversation
-2. Are clear, specific, and educational
-3. Have 4 options each with only ONE correct answer
-4. Include brief explanations for correct answers
-5. Progress from easier to harder
+**CRITICAL:** You must format the entire response as a single, valid JSON array. Do not include any text before or after the JSON.
 
-Return ONLY valid JSON in this exact format:
+Each object in the array represents one question and **must** follow this exact structure:
 {
-  "questions": [
-    {
-      "question": "Clear question text here?",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctAnswer": 0,
-      "explanation": "Brief explanation of why this is correct"
-    }
-  ]
-}`;
+  "question": "The full text of the question?",
+  "options": [
+    "Text for option A",
+    "Text for option B", 
+    "Text for option C",
+    "Text for option D"
+  ],
+  "correct_answer_index": 2,
+  "explanation": "Brief explanation of why this answer is correct"
+}
 
-      const result = await generateStructuredContent<{ questions: QuizQuestion[] }>(prompt, "scholar");
+**Rules for the quiz content:**
+1. **Question & Options:** The \`question\` must be a clear string. The \`options\` array must contain exactly 4 unique, plausible, and distinct strings.
+2. **Correct Answer:** The \`correct_answer_index\` is the **only** way to indicate the correct answer. It must be a 0-based index (0, 1, 2, or 3).
+3. **Randomization:** The position of the correct answer (the \`correct_answer_index\`) **must be randomized** for each question.
+4. **Explanation:** The \`explanation\` must provide a clear, brief explanation of why the correct answer is right.
+4. **Questions:** Keep questions VERY SHORT (5-10 words max) - no extra details
+5. **Options:** Answer options can be longer if needed
+6. **Test Key Concepts:** Focus on the most important concepts from the conversation
 
-      if (result.questions && result.questions.length > 0) {
-        setQuizData(result.questions);
+Generate questions that test understanding of key concepts from the conversation above.`;
+
+      const result = await generateStructuredContent<QuizQuestion[]>(prompt, "scholar");
+
+      if (result && result.length > 0) {
+        // Validate and log quiz data for debugging
+        console.log("Generated quiz data:", result);
+        result.forEach((q, i) => {
+          console.log(`Question ${i + 1}:`, {
+            question: q.question,
+            options: q.options,
+            correct_answer_index: q.correct_answer_index,
+            explanation: q.explanation
+          });
+        });
+        
+        setQuizData(result);
         setMode("active");
         toast.success("Quiz generated from your conversation! 🎉");
       } else {
@@ -147,33 +251,55 @@ Return ONLY valid JSON in this exact format:
         advanced: "challenging questions requiring deep knowledge and critical thinking"
       };
 
-      const prompt = `Generate a 5-question multiple choice quiz about "${searchTopic}" at ${selectedDifficulty} difficulty level.
+      const prompt = `Generate a 5 question multiple-choice quiz about ${searchTopic}.
 
-Difficulty guidelines: ${difficultyGuide[selectedDifficulty]}
+**CRITICAL:** You must format the entire response as a single, valid JSON array. Do not include any text before or after the JSON.
 
-Requirements:
-1. Questions should be ${selectedDifficulty} level - ${difficultyGuide[selectedDifficulty]}
-2. Cover different aspects of ${searchTopic}
-3. Each question has 4 options with only ONE correct answer
-4. Include brief explanations for correct answers
-5. Make questions educational and interesting
-
-Return ONLY valid JSON in this exact format:
+Each object in the array represents one question and **must** follow this exact structure:
 {
-  "questions": [
-    {
-      "question": "Clear question text here?",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctAnswer": 0,
-      "explanation": "Brief explanation of why this is correct"
-    }
-  ]
-}`;
+  "question": "The full text of the question?",
+  "options": [
+    "Text for option A",
+    "Text for option B", 
+    "Text for option C",
+    "Text for option D"
+  ],
+  "correct_answer_index": 2,
+  "explanation": "Brief explanation of why this answer is correct"
+}
 
-      const result = await generateStructuredContent<{ questions: QuizQuestion[] }>(prompt, "scholar");
+**Rules for the quiz content:**
+1. **Question & Options:** The \`question\` must be a clear string. The \`options\` array must contain exactly 4 unique, plausible, and distinct strings.
+2. **Correct Answer:** The \`correct_answer_index\` is the **only** way to indicate the correct answer. It must be a 0-based index (0, 1, 2, or 3).
+3. **Randomization:** The position of the correct answer (the \`correct_answer_index\`) **must be randomized** for each question.
+4. **Explanation:** The \`explanation\` must provide a clear, brief explanation of why the correct answer is right.
 
-      if (result.questions && result.questions.length > 0) {
-        setQuizData(result.questions);
+**Difficulty Level:** ${selectedDifficulty}
+${difficultyGuide[selectedDifficulty]}
+
+**Requirements:**
+- Questions must be VERY SHORT (5-10 words max) - regardless of difficulty level
+- Cover different aspects of ${searchTopic}
+- Answer options can be longer if needed
+- Even advanced topics need short questions
+
+Generate questions that test understanding of ${searchTopic} at ${selectedDifficulty} level.`;
+
+      const result = await generateStructuredContent<QuizQuestion[]>(prompt, "scholar");
+
+      if (result && result.length > 0) {
+        // Validate and log quiz data for debugging
+        console.log("Generated quiz data:", result);
+        result.forEach((q, i) => {
+          console.log(`Question ${i + 1}:`, {
+            question: q.question,
+            options: q.options,
+            correct_answer_index: q.correct_answer_index,
+            explanation: q.explanation
+          });
+        });
+        
+        setQuizData(result);
         setMode("active");
         toast.success(`${selectedDifficulty} quiz on ${searchTopic} generated! 🎉`);
       } else {
@@ -196,7 +322,17 @@ Return ONLY valid JSON in this exact format:
 
     setShowFeedback(true);
 
-    if (selectedAnswer === quizData[currentQuestion].correctAnswer) {
+    // Debug logging for answer validation
+    const question = quizData[currentQuestion];
+    console.log("Answer validation:", {
+      question: question.question,
+      selectedAnswer,
+      correct_answer_index: question.correct_answer_index,
+      options: question.options,
+      isCorrect: selectedAnswer === question.correct_answer_index
+    });
+
+    if (selectedAnswer === quizData[currentQuestion].correct_answer_index) {
       setScore(score + 20);
     }
 
@@ -262,6 +398,10 @@ Return ONLY valid JSON in this exact format:
     navigate("/chat");
   };
 
+  const handleGoToDashboard = () => {
+    navigate("/dashboard");
+  };
+
   // Selection Screen - Choose quiz type
   if (mode === "selection") {
     return (
@@ -269,7 +409,7 @@ Return ONLY valid JSON in this exact format:
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12 animate-in fade-in slide-in-from-top duration-500">
             <div className="inline-flex p-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full mb-4">
-              <Brain className="w-12 h-12 text-white" />
+              <img src="/logo.png" alt="Lumi Logo" className="w-12 h-12" />
             </div>
             <h1 className="text-4xl font-bold mb-3">Test Your Knowledge</h1>
             <p className="text-muted-foreground text-lg">
@@ -277,46 +417,46 @@ Return ONLY valid JSON in this exact format:
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Option 1: Quiz from Learning */}
-            <Card className="p-8 hover:shadow-xl transition-all cursor-pointer group border-2 hover:border-primary/50 animate-in fade-in slide-in-from-left duration-500">
-              <div className="text-center space-y-4">
-                <div className="inline-flex p-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full group-hover:scale-110 transition-transform">
-                  <MessageSquare className="w-10 h-10 text-white" />
+            <Card className="p-6 sm:p-8 hover:shadow-xl transition-all cursor-pointer group border-2 hover:border-primary/50 animate-in fade-in slide-in-from-left duration-500">
+              <div className="text-center space-y-3 sm:space-y-4">
+                <div className="inline-flex p-3 sm:p-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full group-hover:scale-110 transition-transform">
+                  <MessageSquare className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                 </div>
-                <h2 className="text-2xl font-bold">Quiz from Your Learning</h2>
-                <p className="text-muted-foreground">
+                <h2 className="text-xl sm:text-2xl font-bold">Quiz from Your Learning</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">
                   Generate a personalized quiz based on your recent AI chat conversations
                 </p>
-                <div className="pt-4 space-y-2 text-sm text-muted-foreground">
+                <div className="pt-2 sm:pt-4 space-y-2 text-xs sm:text-sm text-muted-foreground">
                   <p>✓ Personalized to your learning</p>
                   <p>✓ Based on what you discussed</p>
                   <p>✓ Tests your understanding</p>
                 </div>
                 <Button 
                   onClick={handleBackToChat}
-                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-sm sm:text-base"
                   size="lg"
                 >
-                  <MessageSquare className="w-5 h-5 mr-2" />
+                  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Go to Chat to Generate
                 </Button>
               </div>
             </Card>
 
             {/* Option 2: Quiz by Topic */}
-            <Card className="p-8 border-2 border-primary/30 relative overflow-hidden animate-in fade-in slide-in-from-right duration-500">
-              <div className="absolute top-0 right-0 bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+            <Card className="p-6 sm:p-8 border-2 border-primary/30 relative overflow-hidden animate-in fade-in slide-in-from-right duration-500">
+              <div className="absolute top-0 right-0 bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xs font-bold px-2 sm:px-3 py-1 rounded-bl-lg">
                 POPULAR
               </div>
               
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <div className="text-center">
-                  <div className="inline-flex p-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full mb-4">
-                    <Search className="w-10 h-10 text-white" />
+                  <div className="inline-flex p-3 sm:p-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full mb-3 sm:mb-4">
+                    <Search className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                   </div>
-                  <h2 className="text-2xl font-bold mb-2">Quiz by Topic</h2>
-                  <p className="text-muted-foreground text-sm">
+                  <h2 className="text-xl sm:text-2xl font-bold mb-2">Quiz by Topic</h2>
+                  <p className="text-muted-foreground text-xs sm:text-sm">
                     Enter any topic and choose difficulty level
                   </p>
                 </div>
@@ -445,28 +585,28 @@ Return ONLY valid JSON in this exact format:
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <Card className="p-6">
-              <p className="text-sm text-muted-foreground mb-1">Score</p>
+          <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
+            <Card className="p-4 sm:p-6">
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Score</p>
               <p className={cn(
-                "text-3xl font-bold",
+                "text-2xl sm:text-3xl font-bold",
                 passed ? "text-green-500" : "text-orange-500"
               )}>
                 {percentage.toFixed(0)}%
               </p>
             </Card>
-            <Card className="p-6">
-              <p className="text-sm text-muted-foreground mb-1">Correct</p>
-              <p className="text-3xl font-bold text-primary">
+            <Card className="p-4 sm:p-6">
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Correct</p>
+              <p className="text-2xl sm:text-3xl font-bold text-primary">
                 {score / 20}/{quizData.length}
               </p>
             </Card>
-            <Card className="p-6">
-              <p className="text-sm text-muted-foreground mb-1">XP Earned</p>
-              <p className="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+            <Card className="p-4 sm:p-6">
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">XP Earned</p>
+              <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
                 +{earnedXP}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                 {selectedDifficulty} difficulty
               </p>
             </Card>
@@ -500,6 +640,15 @@ Return ONLY valid JSON in this exact format:
               <BookOpen className="w-5 h-5 mr-2" />
               Take Another Quiz
             </Button>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="w-full"
+              onClick={handleGoToDashboard}
+            >
+              <LayoutDashboard className="w-5 h-5 mr-2" />
+              Go to Dashboard
+            </Button>
           </div>
         </Card>
       </div>
@@ -510,7 +659,7 @@ Return ONLY valid JSON in this exact format:
   if (mode === "active" && quizData.length > 0) {
     const question = quizData[currentQuestion];
     const progress = ((currentQuestion + 1) / quizData.length) * 100;
-    const isCorrect = selectedAnswer === question.correctAnswer;
+    const isCorrect = selectedAnswer === question.correct_answer_index;
 
   return (
       <div className="min-h-screen px-4 py-24">
@@ -541,7 +690,7 @@ Return ONLY valid JSON in this exact format:
           <div className="space-y-3">
             {question.options.map((option, index) => {
               const isSelected = selectedAnswer === index;
-                const isCorrectAnswer = index === question.correctAnswer;
+                const isCorrectAnswer = index === question.correct_answer_index;
                 const showCorrect = showFeedback && isCorrectAnswer;
                 const showWrong = showFeedback && isSelected && !isCorrect;
 
@@ -633,6 +782,42 @@ Return ONLY valid JSON in this exact format:
     </div>
   );
   }
+
+  // Tab Switch Warning Modal
+  return (
+    <>
+      {mode === 'active' && (
+        <AlertDialog open={showTabWarning} onOpenChange={setShowTabWarning}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                Tab Switch Detected
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                ⚠️ If you switch the tab, the quiz will end. Please stay focused on the quiz to maintain academic integrity.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setShowTabWarning(false)}>
+                Stay on Quiz
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => {
+                  setShowTabWarning(false);
+                  endQuizDueToTabSwitch();
+                }}
+                className="bg-red-500 hover:bg-red-600"
+              >
+                End Quiz
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+    </>
+  );
 
   // Fallback
   return null;

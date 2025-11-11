@@ -44,6 +44,8 @@ export class LeaderboardService {
           user_id,
           total_xp,
           rank,
+          weekly_xp,
+          monthly_xp,
           users (
             name,
             avatar_url,
@@ -55,6 +57,7 @@ export class LeaderboardService {
         .limit(limit);
 
       if (error) throw error;
+      if (!data || data.length === 0) return [];
 
       return this.formatLeaderboardEntries(data);
     } catch (error: any) {
@@ -74,7 +77,10 @@ export class LeaderboardService {
           `
           id,
           user_id,
+          total_xp,
+          rank,
           weekly_xp,
+          monthly_xp,
           users (
             name,
             avatar_url,
@@ -105,6 +111,9 @@ export class LeaderboardService {
           `
           id,
           user_id,
+          total_xp,
+          rank,
+          weekly_xp,
           monthly_xp,
           users (
             name,

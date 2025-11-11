@@ -7,6 +7,7 @@ import type {
   GamificationUpdate,
 } from '../types/gamification';
 import type { Badge } from '../types/user';
+import { LeaderboardService } from './leaderboardService';
 
 /**
  * Gamification Service
@@ -19,7 +20,7 @@ export class GamificationService {
     lesson_complete: 50,
     quiz_complete: 30,
     perfect_quiz: 50,
-    chat_message: 5,
+    chat_message: 1, // 1 XP per chat message
     daily_streak: 20,
     lesson_created: 10,
     first_lesson: 100,
@@ -40,7 +41,7 @@ export class GamificationService {
         .from('users')
         .select('xp, level, streak')
         .eq('id', userId)
-        .single();
+        .single() as { data: { xp: number; level: number; streak: number } | null };
 
       if (!user) throw new Error('User not found');
 
@@ -62,14 +63,34 @@ export class GamificationService {
           xp: newXP,
           level: newLevel,
           updated_at: new Date().toISOString(),
-        })
+        } as any)
         .eq('id', userId);
 
       // Update leaderboard
       await this.updateLeaderboard(userId, newXP);
 
+      // Update weekly and monthly XP
+      await LeaderboardService.updateWeeklyXP(userId, totalXP);
+      await LeaderboardService.updateMonthlyXP(userId, totalXP);
+
       // Check for new badges
       const newBadges = await this.checkAndAwardBadges(userId, newLevel, newXP);
+
+      // Check first-time badges
+      await this.checkFirstTimeBadges(userId, activityType);
+
+      // Check lesson count badges if completing a lesson
+      if (activityType === 'lesson_complete' || activityType === 'first_lesson') {
+        await this.checkLessonCountBadges(userId);
+      }
+
+      // Check engagement badges
+      if (activityType === 'chat_message') {
+        await this.checkEngagementBadges(userId);
+      }
+
+      // Check special milestones
+      await this.checkSpecialMilestones(userId);
 
       return {
         user_id: userId,
@@ -97,7 +118,7 @@ export class GamificationService {
         .from('users')
         .select('streak, updated_at')
         .eq('id', userId)
-        .single();
+        .single() as { data: { streak: number; updated_at: string } | null };
 
       if (!user) throw new Error('User not found');
 
@@ -119,9 +140,9 @@ export class GamificationService {
           .from('users')
           .update({
             streak: newStreak,
-            xp: supabase.rpc('increment', { x: streakBonusXP }),
+            xp: supabase.rpc('increment', { x: streakBonusXP } as any),
             updated_at: now.toISOString(),
-          })
+          } as any)
           .eq('id', userId);
       } else if (daysDiff > 1) {
         // Streak broken
@@ -132,7 +153,7 @@ export class GamificationService {
           .update({
             streak: newStreak,
             updated_at: now.toISOString(),
-          })
+          } as any)
           .eq('id', userId);
       }
 
@@ -243,7 +264,7 @@ export class GamificationService {
           .update({
             total_xp: totalXP,
             updated_at: new Date().toISOString(),
-          })
+          } as any)
           .eq('user_id', userId);
       } else {
         // Create new entry
@@ -251,7 +272,7 @@ export class GamificationService {
           user_id: userId,
           total_xp: totalXP,
           rank: 0, // Will be updated by periodic ranking job
-        });
+        } as any);
       }
 
       // Recalculate ranks (simplified - in production, use a scheduled job)
@@ -269,7 +290,7 @@ export class GamificationService {
       const { data: entries } = await supabase
         .from('leaderboard')
         .select('id, user_id, total_xp')
-        .order('total_xp', { ascending: false });
+        .order('total_xp', { ascending: false }) as { data: Array<{ id: string; user_id: string; total_xp: number }> | null };
 
       if (!entries) return;
 
@@ -277,7 +298,7 @@ export class GamificationService {
       for (let i = 0; i < entries.length; i++) {
         await supabase
           .from('leaderboard')
-          .update({ rank: i + 1 })
+          .update({ rank: i + 1 } as any)
           .eq('id', entries[i].id);
       }
     } catch (error) {
@@ -302,7 +323,7 @@ export class GamificationService {
         if (level === milestone) {
           const badge = await this.awardBadge(userId, {
             badge_type: 'level_milestone',
-            badge_name: `Level ${milestone}`,
+            badge_name: `Level ${milestone} Master`,
             badge_description: `Reached level ${milestone}`,
             badge_icon: '⭐',
           });
@@ -311,14 +332,20 @@ export class GamificationService {
       }
 
       // XP milestone badges
-      const xpMilestones = [1000, 5000, 10000, 50000, 100000];
+      const xpMilestones = [
+        { xp: 1000, name: 'XP Novice', icon: '💎' },
+        { xp: 5000, name: 'XP Apprentice', icon: '💠' },
+        { xp: 10000, name: 'XP Expert', icon: '💫' },
+        { xp: 50000, name: 'XP Virtuoso', icon: '✨' },
+        { xp: 100000, name: 'XP Legend', icon: '🌟' },
+      ];
       for (const milestone of xpMilestones) {
-        if (xp >= milestone && xp < milestone + 100) {
+        if (xp >= milestone.xp && xp < milestone.xp + 100) {
           const badge = await this.awardBadge(userId, {
             badge_type: 'xp_milestone',
-            badge_name: `${milestone} XP`,
-            badge_description: `Earned ${milestone} total XP`,
-            badge_icon: '💎',
+            badge_name: milestone.name,
+            badge_description: `Earned ${milestone.xp.toLocaleString()} total XP`,
+            badge_icon: milestone.icon,
           });
           if (badge) newBadges.push(badge);
         }
@@ -328,6 +355,323 @@ export class GamificationService {
     } catch (error) {
       console.error('Failed to check badges:', error);
       return newBadges;
+    }
+  }
+
+  /**
+   * Award first-time achievement badges
+   */
+  static async checkFirstTimeBadges(userId: string, activityType: ActivityType): Promise<void> {
+    try {
+      console.log(`[GamificationService] Checking first-time badge for activity: ${activityType}, user: ${userId}`);
+      
+      const achievements: Record<ActivityType, { name: string; description: string; icon: string } | null> = {
+        first_lesson: {
+          name: 'First Steps',
+          description: 'Completed your first lesson',
+          icon: '🎯',
+        },
+        quiz_complete: {
+          name: 'Quiz Beginner',
+          description: 'Completed your first quiz',
+          icon: '📝',
+        },
+        perfect_quiz: {
+          name: 'Perfect Start',
+          description: 'Achieved your first perfect score',
+          icon: '🎊',
+        },
+        chat_message: {
+          name: 'Conversation Starter',
+          description: 'Sent your first AI chat message',
+          icon: '💬',
+        },
+        lesson_complete: null,
+        daily_streak: null,
+        lesson_created: null,
+        milestone_reached: null,
+      };
+
+      const achievement = achievements[activityType];
+      if (achievement) {
+        console.log(`[GamificationService] Attempting to award badge: ${achievement.name}`);
+        const badge = await this.awardBadge(userId, {
+          badge_type: 'first_time',
+          badge_name: achievement.name,
+          badge_description: achievement.description,
+          badge_icon: achievement.icon,
+        });
+        
+        if (badge) {
+          console.log(`[GamificationService] ✓ Badge awarded successfully: ${achievement.name}`);
+        } else {
+          console.log(`[GamificationService] ℹ User already has badge: ${achievement.name}`);
+        }
+      } else {
+        console.log(`[GamificationService] No first-time badge for activity: ${activityType}`);
+      }
+    } catch (error) {
+      console.error('[GamificationService] Failed to check first-time badges:', error);
+    }
+  }
+
+  /**
+   * Check and award lesson count badges
+   */
+  static async checkLessonCountBadges(userId: string): Promise<void> {
+    try {
+      // Get completed lessons from user_progress table instead
+      const { data: progressData } = await supabase
+        .from('user_progress')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('completed', true);
+
+      const lessonCount = progressData?.length || 0;
+
+      const milestones = [
+        { count: 10, name: 'Study Starter', icon: '📚', description: 'Completed 10 lessons' },
+        { count: 25, name: 'Knowledge Seeker', icon: '🔍', description: 'Completed 25 lessons' },
+        { count: 50, name: 'Learning Enthusiast', icon: '🌱', description: 'Completed 50 lessons' },
+        { count: 100, name: 'Century Scholar', icon: '📖', description: 'Completed 100 lessons' },
+        { count: 250, name: 'Wisdom Master', icon: '🧙', description: 'Completed 250 lessons' },
+      ];
+
+      for (const milestone of milestones) {
+        if (lessonCount === milestone.count) {
+          await this.awardBadge(userId, {
+            badge_type: 'lesson_count',
+            badge_name: milestone.name,
+            badge_description: milestone.description,
+            badge_icon: milestone.icon,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check lesson count badges:', error);
+    }
+  }
+
+  /**
+   * Check and award quiz performance badges
+   */
+  static async checkQuizPerformanceBadges(userId: string, score: number, isPerfect: boolean): Promise<void> {
+    try {
+      // Check total quiz count
+      const { data: quizData } = await supabase
+        .from('quiz_results')
+        .select('id, score')
+        .eq('user_id', userId) as { data: Array<{ id: string; score: number }> | null };
+
+      const totalQuizzes = quizData?.length || 0;
+      const perfectScores = quizData?.filter(q => q.score === 100).length || 0;
+
+      // Quiz count milestones
+      const countMilestones = [
+        { count: 10, name: 'Quiz Explorer', icon: '🧭', description: 'Completed 10 quizzes' },
+        { count: 50, name: 'Quiz Veteran', icon: '🎓', description: 'Completed 50 quizzes' },
+        { count: 100, name: 'Quiz Master', icon: '👨‍🎓', description: 'Completed 100 quizzes' },
+      ];
+
+      for (const milestone of countMilestones) {
+        if (totalQuizzes === milestone.count) {
+          await this.awardBadge(userId, {
+            badge_type: 'quiz_count',
+            badge_name: milestone.name,
+            badge_description: milestone.description,
+            badge_icon: milestone.icon,
+          });
+        }
+      }
+
+      // Perfect score milestones
+      const perfectMilestones = [
+        { count: 5, name: 'Perfectionist', icon: '🎯', description: 'Achieved 5 perfect scores' },
+        { count: 10, name: 'Flawless Scholar', icon: '💯', description: 'Achieved 10 perfect scores' },
+        { count: 25, name: 'Precision Master', icon: '🏅', description: 'Achieved 25 perfect scores' },
+      ];
+
+      for (const milestone of perfectMilestones) {
+        if (perfectScores === milestone.count) {
+          await this.awardBadge(userId, {
+            badge_type: 'perfect_score',
+            badge_name: milestone.name,
+            badge_description: milestone.description,
+            badge_icon: milestone.icon,
+          });
+        }
+      }
+
+      // High score achievement (90+ but not perfect)
+      if (score >= 90 && score < 100 && totalQuizzes >= 10) {
+        const highScoreCount = quizData?.filter(q => q.score >= 90 && q.score < 100).length || 0;
+        if (highScoreCount === 10) {
+          await this.awardBadge(userId, {
+            badge_type: 'high_score',
+            badge_name: 'Almost Perfect',
+            badge_description: 'Scored 90%+ on 10 quizzes',
+            badge_icon: '🌟',
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check quiz performance badges:', error);
+    }
+  }
+
+  /**
+   * Check and award engagement badges
+   */
+  static async checkEngagementBadges(userId: string): Promise<void> {
+    try {
+      // Chat message count
+      const { data: chatData } = await supabase
+        .from('chat_history')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('role', 'user');
+
+      const messageCount = chatData?.length || 0;
+
+      const chatMilestones = [
+        { count: 50, name: 'Chat Enthusiast', icon: '💭', description: 'Sent 50 chat messages' },
+        { count: 100, name: 'Conversationalist', icon: '🗣️', description: 'Sent 100 chat messages' },
+        { count: 500, name: 'AI Companion', icon: '🤖', description: 'Sent 500 chat messages' },
+      ];
+
+      for (const milestone of chatMilestones) {
+        if (messageCount === milestone.count) {
+          await this.awardBadge(userId, {
+            badge_type: 'engagement',
+            badge_name: milestone.name,
+            badge_description: milestone.description,
+            badge_icon: milestone.icon,
+          });
+        }
+      }
+
+      // Check study time patterns
+      const currentHour = new Date().getHours();
+      
+      // Night Owl (studying between 10 PM - 2 AM)
+      if (currentHour >= 22 || currentHour <= 2) {
+        const { data: existingBadge } = await supabase
+          .from('badges')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('badge_name', 'Night Owl')
+          .single();
+
+        if (!existingBadge && messageCount >= 20) {
+          await this.awardBadge(userId, {
+            badge_type: 'time_pattern',
+            badge_name: 'Night Owl',
+            badge_description: 'Study sessions after 10 PM',
+            badge_icon: '🦉',
+          });
+        }
+      }
+
+      // Early Bird (studying between 5 AM - 8 AM)
+      if (currentHour >= 5 && currentHour <= 8) {
+        const { data: existingBadge } = await supabase
+          .from('badges')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('badge_name', 'Early Bird')
+          .single();
+
+        if (!existingBadge && messageCount >= 20) {
+          await this.awardBadge(userId, {
+            badge_type: 'time_pattern',
+            badge_name: 'Early Bird',
+            badge_description: 'Study sessions before 8 AM',
+            badge_icon: '🐦',
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check engagement badges:', error);
+    }
+  }
+
+  /**
+   * Check and award special milestone badges
+   */
+  static async checkSpecialMilestones(userId: string): Promise<void> {
+    try {
+      // Profile completion
+      const { data: userData } = await supabase
+        .from('users')
+        .select('name, username, bio, avatar_url, persona, learning_mode')
+        .eq('id', userId)
+        .single() as { data: { name: string; username: string; bio: string; avatar_url: string; persona: string; learning_mode: string } | null };
+
+      if (userData) {
+        const isProfileComplete = 
+          userData.name && 
+          userData.username && 
+          userData.bio && 
+          userData.avatar_url && 
+          userData.persona && 
+          userData.learning_mode;
+
+        if (isProfileComplete) {
+          await this.awardBadge(userId, {
+            badge_type: 'profile',
+            badge_name: 'Profile Pro',
+            badge_description: 'Completed your full profile',
+            badge_icon: '✨',
+          });
+        }
+      }
+
+      // Check leaderboard position
+      const { data: leaderboardData } = await supabase
+        .from('leaderboard')
+        .select('rank')
+        .eq('user_id', userId)
+        .single() as { data: { rank: number } | null };
+
+      if (leaderboardData) {
+        if (leaderboardData.rank === 1) {
+          await this.awardBadge(userId, {
+            badge_type: 'leaderboard',
+            badge_name: 'Champion',
+            badge_description: 'Reached #1 on the leaderboard',
+            badge_icon: '👑',
+          });
+        } else if (leaderboardData.rank <= 10) {
+          await this.awardBadge(userId, {
+            badge_type: 'leaderboard',
+            badge_name: 'Top 10 Elite',
+            badge_description: 'Reached top 10 on the leaderboard',
+            badge_icon: '🏆',
+          });
+        }
+      }
+
+      // Diverse learning (used multiple learning modes)
+      // NOTE: Disabled until lesson_type and status columns are added to lessons table
+      // const { data: lessonModes } = await supabase
+      //   .from('lessons')
+      //   .select('lesson_type')
+      //   .eq('user_id', userId)
+      //   .eq('status', 'completed');
+      //
+      // if (lessonModes) {
+      //   const uniqueModes = new Set(lessonModes.map(l => l.lesson_type));
+      //   if (uniqueModes.size >= 3) {
+      //     await this.awardBadge(userId, {
+      //       badge_type: 'diversity',
+      //       badge_name: 'Well-Rounded Learner',
+      //       badge_description: 'Explored 3+ different learning modes',
+      //       badge_icon: '🎨',
+      //     });
+      //   }
+      // }
+    } catch (error) {
+      console.error('Failed to check special milestones:', error);
     }
   }
 
@@ -371,15 +715,26 @@ export class GamificationService {
     }
   ): Promise<Badge | null> {
     try {
+      console.log(`[GamificationService] awardBadge - Checking for existing badge: "${badgeData.badge_name}" for user: ${userId}`);
+      
       // Check if user already has this badge
-      const { data: existingBadge } = await supabase
+      const { data: existingBadge, error: checkError } = await supabase
         .from('badges')
         .select('id')
         .eq('user_id', userId)
         .eq('badge_name', badgeData.badge_name)
         .single();
 
-      if (existingBadge) return null;
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
+        console.error('[GamificationService] Error checking existing badge:', checkError);
+      }
+
+      if (existingBadge) {
+        console.log(`[GamificationService] User already has badge: "${badgeData.badge_name}"`);
+        return null;
+      }
+
+      console.log(`[GamificationService] Creating new badge in database:`, badgeData);
 
       // Award new badge
       const { data: newBadge, error } = await supabase
@@ -387,15 +742,20 @@ export class GamificationService {
         .insert({
           user_id: userId,
           ...badgeData,
-        })
+        } as any)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[GamificationService] Error inserting badge:', error);
+        throw error;
+      }
+
+      console.log(`[GamificationService] ✓ Badge created successfully in DB:`, newBadge);
 
       return newBadge as Badge;
     } catch (error) {
-      console.error('Failed to award badge:', error);
+      console.error('[GamificationService] Failed to award badge:', error);
       return null;
     }
   }

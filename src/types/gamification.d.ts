@@ -77,11 +77,6 @@ export interface DashboardStats {
     xp_for_next_level: number;
     progress_percentage: number;
   };
-  streak: {
-    current: number;
-    longest: number;
-    last_activity: string;
-  };
   lessons: {
     total: number;
     completed: number;

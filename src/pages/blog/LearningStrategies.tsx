@@ -141,7 +141,7 @@ export default function LearningStrategies() {
           <Card className="p-8 text-center bg-gradient-to-br from-primary/10 to-purple-500/10 mt-12">
             <h3 className="text-2xl font-bold mb-4">Ready to Learn Smarter?</h3>
             <p className="text-muted-foreground mb-6">
-              Join AI Learning Coach and get personalized learning strategies
+              Join Lumi and get personalized learning strategies
             </p>
             <Button size="lg" asChild>
               <Link to="/signup">Start Learning</Link>

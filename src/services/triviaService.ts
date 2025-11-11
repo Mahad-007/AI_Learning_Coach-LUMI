@@ -1,5 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
+import { FriendsService, FriendUser } from '@/services/friendsService';
 import { generateStructuredContent } from '../lib/geminiClient';
+import { XPUpdateService } from './xpUpdateService';
 
 /**
  * Trivia Service
@@ -71,6 +73,50 @@ export class TriviaService {
       console.error('Failed to create room:', error);
       throw new Error(error.message || 'Failed to create trivia room');
     }
+  }
+
+  /**
+   * Invite a friend to a trivia room and send notification
+   */
+  static async inviteFriend(roomId: string, toUserId: string, fromUser: { id: string; name: string }): Promise<void> {
+    // record invite
+    const { error: inviteErr } = await supabase.from('trivia_invites').insert({
+      room_id: roomId,
+      from_user_id: fromUser.id,
+      to_user_id: toUserId,
+    });
+    if (inviteErr) throw inviteErr;
+
+    // send notification
+    await supabase.from('notifications').insert({
+      user_id: toUserId,
+      type: 'trivia_invite',
+      payload: { room_id: roomId, from_id: fromUser.id, from_name: fromUser.name },
+    });
+  }
+
+  /**
+   * Get friends with presence
+   */
+  static async listFriendsWithPresence(currentUserId: string): Promise<Array<{ id: string; name: string; avatar_url?: string | null; presence: { status: string; last_active_at: string } }>> {
+    // Get friends using existing service
+    const friends: FriendUser[] = await FriendsService.listFriends();
+    if (!friends || friends.length === 0) return [];
+
+    const friendIds = friends.map((f) => f.id);
+    const { data: presenceRows } = await supabase
+      .from('user_presence')
+      .select('user_id,status,last_active_at')
+      .in('user_id', friendIds);
+    const idToPresence = new Map<string, { status: string; last_active_at: string }>();
+    (presenceRows || []).forEach((row: any) => idToPresence.set(row.user_id, { status: row.status, last_active_at: row.last_active_at }));
+
+    return friends.map((f) => ({
+      id: f.id,
+      name: f.name,
+      avatar_url: (f as any).avatar_url,
+      presence: idToPresence.get(f.id) || { status: 'offline', last_active_at: new Date(0).toISOString() },
+    }));
   }
 
   /**
@@ -317,10 +363,11 @@ Return ONLY valid JSON in this exact format:
       for (const participant of participants) {
         const xp = participant.score; // 1 XP per point
         if (xp > 0) {
-          await supabase.rpc('award_xp_to_user', {
-            p_user_id: participant.user_id,
-            p_xp_amount: xp,
-          });
+          try {
+            await XPUpdateService.addXP(participant.user_id, xp, `trivia_score_${xp}`);
+          } catch (error) {
+            console.error(`Failed to award trivia XP to ${participant.user_id}:`, error);
+          }
         }
       }
     } catch (error) {

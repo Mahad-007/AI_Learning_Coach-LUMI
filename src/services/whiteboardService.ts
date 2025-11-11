@@ -15,7 +15,8 @@ export class WhiteboardService {
     topic: string;
     max_participants?: number;
     settings?: Partial<WhiteboardSettings>;
-  }): Promise<WhiteboardSession> {
+    generateCode?: boolean; // New parameter to control code generation
+  }): Promise<WhiteboardSession & { roomCode?: string }> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
@@ -31,12 +32,28 @@ export class WhiteboardService {
       throw new Error('Failed to fetch user profile');
     }
 
+    // Generate room code if requested
+    let roomCode = null;
+    if (data.generateCode) {
+      console.log('Generating room code...');
+      const { data: codeData, error: codeError } = await supabase.rpc('generate_whiteboard_session_code');
+      console.log('Code generation result:', { codeData, codeError });
+      if (codeError) {
+        console.error('Error generating room code:', codeError);
+        throw new Error('Failed to generate room code');
+      }
+      roomCode = codeData;
+      console.log('Generated room code:', roomCode);
+    }
+
     const sessionData = {
       title: data.title,
       topic: data.topic,
       host_id: user.id,
       host_name: userProfile?.name || 'Anonymous',
       max_participants: data.max_participants || 10,
+      room_code: roomCode,
+      is_joinable: true,
       settings: {
         allow_drawing: true,
         allow_text: true,
@@ -69,7 +86,7 @@ export class WhiteboardService {
       // Don't throw here, session was created successfully
     }
     
-    return session;
+    return { ...session, roomCode };
   }
 
   static async getSession(sessionId: string): Promise<WhiteboardSession> {
@@ -124,6 +141,59 @@ export class WhiteboardService {
   }
 
   // Participant Management
+  // Join session by code
+  static async joinSessionByCode(
+    roomCode: string,
+    role: 'host' | 'teacher' | 'student' = 'student'
+  ): Promise<{ session: WhiteboardSession; participant: WhiteboardParticipant }> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    console.log('Attempting to join session with code:', roomCode);
+
+    // Get user profile
+    const { data: userProfile } = await supabase
+      .from('users')
+      .select('name, avatar_url')
+      .eq('id', user.id)
+      .single();
+
+    console.log('User profile:', userProfile);
+
+    const { data, error } = await supabase.rpc('join_whiteboard_session_by_code', {
+      session_code: roomCode.toUpperCase(),
+      user_id_param: user.id,
+      user_name_param: userProfile?.name || 'Anonymous',
+      user_avatar_param: userProfile?.avatar_url || null,
+      role_param: role
+    });
+
+    console.log('Join session result:', { data, error });
+
+    if (error) {
+      console.error('Error joining session by code:', error);
+      throw new Error(error.message || 'Failed to join session');
+    }
+
+    if (!data || data.length === 0) {
+      throw new Error('Session not found or not joinable');
+    }
+
+    const result = data[0] as any;
+
+    // Support both old and new RPC return shapes
+    const sessionId: string = result.session_id || result.out_session_id;
+    const participantId: string = result.participant_id || result.out_participant_id;
+
+    // Get the full session data
+    const session = await this.getSession(sessionId);
+    
+    // Get the participant data
+    const participant = await this.getParticipantById(participantId);
+
+    return { session, participant };
+  }
+
   static async joinSession(sessionId: string, role: 'host' | 'teacher' | 'student' = 'student'): Promise<WhiteboardParticipant> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
@@ -212,6 +282,17 @@ export class WhiteboardService {
 
     if (error) throw error;
     return participants || [];
+  }
+
+  static async getParticipantById(participantId: string): Promise<WhiteboardParticipant> {
+    const { data: participant, error } = await supabase
+      .from('whiteboard_participants')
+      .select('*')
+      .eq('id', participantId)
+      .single();
+
+    if (error) throw error;
+    return participant;
   }
 
   static async updateParticipantCursor(sessionId: string, cursorPosition: { x: number; y: number }): Promise<void> {

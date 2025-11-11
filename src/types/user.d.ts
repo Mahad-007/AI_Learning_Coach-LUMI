@@ -1,14 +1,22 @@
 export type Persona = 'friendly' | 'strict' | 'fun' | 'scholar';
+export type LearningMode = 'ai_chat' | 'stories' | 'whiteboard' | 'quiz' | 'tutoring';
+export type ThemePreference = 'light' | 'dark' | 'system';
 
 export interface User {
   id: string;
   name: string;
   email: string;
+  username?: string;
+  bio?: string;
   avatar_url: string | null;
   xp: number;
   level: number;
   streak: number;
   persona: Persona;
+  learning_mode?: LearningMode;
+  theme_preference?: ThemePreference;
+  email_verified: boolean; // This will be derived from Supabase auth
+  email_verified_at?: string; // This will be derived from Supabase auth
   created_at: string;
   updated_at: string;
 }

@@ -16,12 +16,16 @@ import {
   Users,
   MessageCircle,
   Settings,
-  Wand2
+  Wand2,
+  Menu,
+  X
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { WhiteboardService } from '@/services/whiteboardService';
 import { AIAssistant } from './AIAssistant';
 import { FriendInvitationComponent } from './FriendInvitation';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useTheme } from '@/hooks/use-theme';
 import type { 
   WhiteboardElement, 
   WhiteboardParticipant, 
@@ -31,6 +35,7 @@ import type {
   ShapeData 
 } from '@/types/whiteboard';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabaseClient';
 
 interface WhiteboardProps {
   sessionId: string;
@@ -41,13 +46,15 @@ interface WhiteboardProps {
 
 export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle, sessionTopic, onClose }) => {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+  const { isDark } = useTheme();
   const stageRef = useRef<any>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const [elements, setElements] = useState<WhiteboardElement[]>([]);
   const [participants, setParticipants] = useState<WhiteboardParticipant[]>([]);
   const [messages, setMessages] = useState<WhiteboardMessage[]>([]);
   const [currentTool, setCurrentTool] = useState<'pen' | 'brush' | 'eraser' | 'text' | 'shape' | 'select'>('pen');
-  const [currentColor, setCurrentColor] = useState('#000000');
+  const [currentColor, setCurrentColor] = useState(isDark ? '#FFFFFF' : '#000000');
   const [strokeWidth, setStrokeWidth] = useState(2);
   const [isDrawing, setIsDrawing] = useState(false);
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
@@ -57,19 +64,31 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
   const [chatMessage, setChatMessage] = useState('');
   const [showChat, setShowChat] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [stageSize, setStageSize] = useState({ width: 1200, height: 800 });
   const [isAnimating, setIsAnimating] = useState(false);
 
+  // Update current color when theme changes
+  useEffect(() => {
+    const themeColor = isDark ? '#FFFFFF' : '#000000';
+    setCurrentColor(themeColor);
+  }, [isDark]);
+
+  // Theme-aware colors
   const colors = [
     '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
     '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
-    '#000000', '#FFFFFF', '#808080', '#FF0000', '#00FF00', '#0000FF'
+    isDark ? '#FFFFFF' : '#000000', // Primary text color based on theme
+    isDark ? '#000000' : '#FFFFFF', // Background color based on theme
+    '#808080', '#FF0000', '#00FF00', '#0000FF'
   ];
 
   // Calculate optimal stage size based on content
   const calculateStageSize = useCallback(() => {
     if (!elements.length) {
-      return { width: 1200, height: 800 };
+      const baseWidth = isMobile ? window.innerWidth - 20 : 1200;
+      const baseHeight = isMobile ? window.innerHeight - 200 : 800;
+      return { width: baseWidth, height: baseHeight };
     }
 
     let maxX = 0;
@@ -93,15 +112,15 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
     });
 
     // Add padding and ensure minimum size
-    const padding = 100;
-    const minWidth = Math.max(1200, window.innerWidth - 400);
-    const minHeight = Math.max(800, window.innerHeight - 100);
+    const padding = isMobile ? 50 : 100;
+    const minWidth = isMobile ? window.innerWidth - 20 : Math.max(1200, window.innerWidth - 400);
+    const minHeight = isMobile ? window.innerHeight - 200 : Math.max(800, window.innerHeight - 100);
     
     return {
       width: Math.max(minWidth, maxX + padding),
       height: Math.max(minHeight, maxY + padding)
     };
-  }, [elements]);
+  }, [elements, isMobile]);
 
   // Update stage size when elements change
   useEffect(() => {
@@ -142,9 +161,93 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
     }
   };
 
-  // Drawing handlers
-  const handleMouseDown = useCallback((e: any) => {
+  // Realtime subscriptions for elements, messages, and participants
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const channel = supabase.channel(`whiteboard:${sessionId}`);
+
+    // Elements INSERT
+    channel.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'whiteboard_elements', filter: `session_id=eq.${sessionId}` },
+      (payload: any) => {
+        const newEl = payload.new as WhiteboardElement;
+        setElements(prev => {
+          if (prev.some(e => e.id === newEl.id)) return prev; // dedupe
+          // Replace temp element if it exists (same last points pattern not reliable; rely on id dedupe only)
+          return [...prev, newEl];
+        });
+      }
+    );
+
+    // Elements UPDATE
+    channel.on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'whiteboard_elements', filter: `session_id=eq.${sessionId}` },
+      (payload: any) => {
+        const updated = payload.new as WhiteboardElement;
+        setElements(prev => prev.map(e => (e.id === updated.id ? updated : e)));
+      }
+    );
+
+    // Elements DELETE
+    channel.on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'whiteboard_elements', filter: `session_id=eq.${sessionId}` },
+      (payload: any) => {
+        const removedId = payload.old.id as string;
+        setElements(prev => prev.filter(e => e.id !== removedId));
+      }
+    );
+
+    // Messages INSERT
+    channel.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'whiteboard_messages', filter: `session_id=eq.${sessionId}` },
+      (payload: any) => {
+        const msg = payload.new as WhiteboardMessage;
+        setMessages(prev => (prev.some(m => m.id === msg.id) ? prev : [...prev, msg]));
+      }
+    );
+
+    // Participants INSERT
+    channel.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'whiteboard_participants', filter: `session_id=eq.${sessionId}` },
+      (payload: any) => {
+        const p = payload.new as WhiteboardParticipant;
+        setParticipants(prev => (prev.some(x => x.id === p.id) ? prev : [...prev, p]));
+      }
+    );
+
+    // Participants DELETE
+    channel.on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'whiteboard_participants', filter: `session_id=eq.${sessionId}` },
+      (payload: any) => {
+        const removedId = payload.old.id as string;
+        setParticipants(prev => prev.filter(p => p.id !== removedId));
+      }
+    );
+
+    channel.subscribe(status => {
+      if (status === 'SUBSCRIBED') {
+        // Optionally log
+      }
+    });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [sessionId]);
+
+  // Drawing handlers - unified for mouse and touch
+  const handlePointerDown = useCallback((e: any) => {
     if (isAnimating) return; // Prevent drawing during AI animation
+    
+    // Prevent default touch behavior to avoid scrolling
+    e.evt.preventDefault();
     
     if (currentTool === 'text') {
       const pos = e.target.getStage().getPointerPosition();
@@ -163,7 +266,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
         data: {
           points: [pos.x, pos.y],
           strokeWidth: currentTool === 'eraser' ? strokeWidth * 2 : strokeWidth,
-          strokeColor: currentTool === 'eraser' ? '#FFFFFF' : currentColor,
+          strokeColor: currentTool === 'eraser' ? (isDark ? '#000000' : '#FFFFFF') : currentColor,
           tool: currentTool
         } as DrawingData,
         created_by: user?.id || '',
@@ -184,8 +287,11 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
     }
   }, [currentTool, strokeWidth, currentColor, sessionId, user?.id, elements.length, isAnimating]);
 
-  const handleMouseMove = useCallback((e: any) => {
+  const handlePointerMove = useCallback((e: any) => {
     if (!isDrawing || (currentTool !== 'pen' && currentTool !== 'brush' && currentTool !== 'eraser') || isAnimating) return;
+
+    // Prevent default touch behavior to avoid scrolling
+    e.evt.preventDefault();
 
     const pos = e.target.getStage().getPointerPosition();
     const lastElement = elements[elements.length - 1];
@@ -212,7 +318,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
     }
   }, [isDrawing, currentTool, elements, isAnimating]);
 
-  const handleMouseUp = useCallback(() => {
+  const handlePointerUp = useCallback(() => {
     setIsDrawing(false);
   }, []);
 
@@ -244,7 +350,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
     }).catch(console.error);
   }, [newText, textPosition, currentColor, sessionId, user?.id, elements.length]);
 
-  // Animate drawing elements smoothly
+  // Animate drawing elements smoothly (append to local state after a delay)
   const animateDrawing = useCallback(async (element: WhiteboardElement, delay: number = 0) => {
     return new Promise<void>((resolve) => {
       setTimeout(() => {
@@ -257,19 +363,36 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
   // Chat handling
   const handleAddElements = useCallback(async (newElements: WhiteboardElement[]) => {
     setIsAnimating(true);
-    
-    // Sort elements by layer for proper drawing order
+
+    // Sort by layer for proper order
     const sortedElements = [...newElements].sort((a, b) => (a.layer || 0) - (b.layer || 0));
-    
-    // Animate each element with a delay
+
+    // Persist each element to DB so it broadcasts via realtime, and animate locally
     for (let i = 0; i < sortedElements.length; i++) {
-      const element = sortedElements[i];
-      const delay = element.type === 'drawing' ? i * 200 : i * 100; // Longer delay for drawings
-      await animateDrawing(element, delay);
+      const raw = sortedElements[i];
+      const delay = raw.type === 'drawing' ? i * 200 : i * 100;
+
+      const elementToInsert: Omit<WhiteboardElement, 'id' | 'created_at' | 'updated_at'> = {
+        session_id: sessionId,
+        type: raw.type,
+        data: raw.data,
+        created_by: user?.id || '',
+        layer: raw.layer ?? i + 1,
+        visible: raw.visible ?? true
+      } as any;
+
+      try {
+        const inserted = await WhiteboardService.addElement(sessionId, elementToInsert);
+        // Animate the inserted version (has definitive id), realtime will also deliver but dedupe by id
+        await animateDrawing(inserted, delay);
+      } catch (e) {
+        console.error('Error adding AI element:', e);
+        toast.error('Failed to add AI-generated element');
+      }
     }
-    
+
     setIsAnimating(false);
-  }, [animateDrawing]);
+  }, [animateDrawing, sessionId, user?.id]);
 
   const handleSendMessage = useCallback(async () => {
     if (!chatMessage.trim()) return;
@@ -346,7 +469,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
         text={data.text}
         fontSize={data.fontSize || 16}
         fontFamily={data.fontFamily || 'Arial'}
-        fill={data.color || '#000000'}
+        fill={data.color || (isDark ? '#FFFFFF' : '#000000')}
         rotation={data.rotation || 0}
         width={data.width || 400} // Set default width to prevent overflow
         wrap="word"
@@ -366,45 +489,56 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
   };
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden">
+
       {/* Toolbar */}
-      <div className="w-16 bg-white border-r border-gray-200 flex flex-col items-center py-4 space-y-2 overflow-y-auto">
+      <div className={`${isMobile ? 'fixed top-20 left-0 z-40 w-64 h-full transform transition-transform duration-300' : 'w-16'} ${showMobileMenu || !isMobile ? 'translate-x-0' : '-translate-x-full'} bg-card border-r border-border flex flex-col items-center py-4 space-y-2 overflow-y-auto`}>
         <Button
           variant={currentTool === 'pen' ? 'default' : 'ghost'}
-          size="sm"
+          size={isMobile ? "default" : "sm"}
           onClick={() => setCurrentTool('pen')}
+          className={isMobile ? "w-full justify-start" : ""}
         >
           <Palette className="h-4 w-4" />
+          {isMobile && <span className="ml-2">Pen</span>}
         </Button>
         <Button
           variant={currentTool === 'text' ? 'default' : 'ghost'}
-          size="sm"
+          size={isMobile ? "default" : "sm"}
           onClick={() => setCurrentTool('text')}
+          className={isMobile ? "w-full justify-start" : ""}
         >
           <Type className="h-4 w-4" />
+          {isMobile && <span className="ml-2">Text</span>}
         </Button>
         <Button
           variant={currentTool === 'shape' ? 'default' : 'ghost'}
-          size="sm"
+          size={isMobile ? "default" : "sm"}
           onClick={() => setCurrentTool('shape')}
+          className={isMobile ? "w-full justify-start" : ""}
         >
           <Square className="h-4 w-4" />
+          {isMobile && <span className="ml-2">Shape</span>}
         </Button>
         <Button
           variant={currentTool === 'eraser' ? 'default' : 'ghost'}
-          size="sm"
+          size={isMobile ? "default" : "sm"}
           onClick={() => setCurrentTool('eraser')}
+          className={isMobile ? "w-full justify-start" : ""}
         >
           <Eraser className="h-4 w-4" />
+          {isMobile && <span className="ml-2">Eraser</span>}
         </Button>
         
         <Separator className="my-2" />
         
-        <Button variant="ghost" size="sm" onClick={handleExport}>
+        <Button variant="ghost" size={isMobile ? "default" : "sm"} onClick={handleExport} className={isMobile ? "w-full justify-start" : ""}>
           <Download className="h-4 w-4" />
+          {isMobile && <span className="ml-2">Export</span>}
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => document.getElementById('import-file')?.click()}>
+        <Button variant="ghost" size={isMobile ? "default" : "sm"} onClick={() => document.getElementById('import-file')?.click()} className={isMobile ? "w-full justify-start" : ""}>
           <Upload className="h-4 w-4" />
+          {isMobile && <span className="ml-2">Import</span>}
         </Button>
         <input
           id="import-file"
@@ -416,99 +550,151 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
         
         <Separator className="my-2" />
         
-        <Button variant="ghost" size="sm" onClick={() => setShowChat(!showChat)}>
+        <Button variant="ghost" size={isMobile ? "default" : "sm"} onClick={() => setShowChat(!showChat)} className={isMobile ? "w-full justify-start" : ""}>
           <MessageCircle className="h-4 w-4" />
+          {isMobile && <span className="ml-2">Chat</span>}
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => setShowSettings(!showSettings)}>
+        <Button variant="ghost" size={isMobile ? "default" : "sm"} onClick={() => setShowSettings(!showSettings)} className={isMobile ? "w-full justify-start" : ""}>
           <Settings className="h-4 w-4" />
+          {isMobile && <span className="ml-2">Settings</span>}
         </Button>
         
         <Separator className="my-2" />
         
         <Button 
           variant="ghost" 
-          size="sm" 
+          size={isMobile ? "default" : "sm"} 
           onClick={() => {
             if (window.confirm('Are you sure you want to clear the whiteboard?')) {
               setElements([]);
             }
           }}
           disabled={isAnimating}
+          className={isMobile ? "w-full justify-start" : ""}
         >
           <Eraser className="h-4 w-4" />
+          {isMobile && <span className="ml-2">Clear</span>}
         </Button>
       </div>
 
       {/* Color Palette */}
-      <div className="w-48 bg-white border-r border-gray-200 p-4 overflow-y-auto">
-        <h3 className="text-sm font-medium mb-2">Colors</h3>
-        <div className="grid grid-cols-4 gap-2">
-          {colors.map((color) => (
-            <button
-              key={color}
-              className={`w-8 h-8 rounded border-2 ${
-                currentColor === color ? 'border-gray-800' : 'border-gray-300'
-              }`}
-              style={{ backgroundColor: color }}
-              onClick={() => setCurrentColor(color)}
+      {!isMobile && (
+        <div className="w-48 bg-card border-r border-border p-4 overflow-y-auto">
+          <h3 className="text-sm font-medium mb-2 text-foreground">Colors</h3>
+          <div className="grid grid-cols-4 gap-2">
+            {colors.map((color) => (
+              <button
+                key={color}
+                className={`w-8 h-8 rounded border-2 ${
+                  currentColor === color ? 'border-foreground' : 'border-border'
+                }`}
+                style={{ backgroundColor: color }}
+                onClick={() => setCurrentColor(color)}
+              />
+            ))}
+          </div>
+          
+          <div className="mt-4">
+            <label className="text-sm font-medium text-foreground">Stroke Width</label>
+            <input
+              type="range"
+              min="1"
+              max="20"
+              value={strokeWidth}
+              onChange={(e) => setStrokeWidth(Number(e.target.value))}
+              className="w-full mt-1"
             />
-          ))}
+            <span className="text-xs text-muted-foreground">{strokeWidth}px</span>
+          </div>
         </div>
-        
-        <div className="mt-4">
-          <label className="text-sm font-medium">Stroke Width</label>
-          <input
-            type="range"
-            min="1"
-            max="20"
-            value={strokeWidth}
-            onChange={(e) => setStrokeWidth(Number(e.target.value))}
-            className="w-full mt-1"
-          />
-          <span className="text-xs text-gray-500">{strokeWidth}px</span>
+      )}
+
+      {/* Mobile Color Palette */}
+      {isMobile && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-30 bg-card/90 backdrop-blur-sm border border-border rounded-lg p-3">
+          <div className="flex items-center space-x-3">
+            <div className="grid grid-cols-8 gap-1">
+              {colors.slice(0, 8).map((color) => (
+                <button
+                  key={color}
+                  className={`w-6 h-6 rounded border-2 ${
+                    currentColor === color ? 'border-foreground' : 'border-border'
+                  }`}
+                  style={{ backgroundColor: color }}
+                  onClick={() => setCurrentColor(color)}
+                />
+              ))}
+            </div>
+            <div className="flex flex-col items-center space-y-1">
+              <input
+                type="range"
+                min="1"
+                max="20"
+                value={strokeWidth}
+                onChange={(e) => setStrokeWidth(Number(e.target.value))}
+                className="w-16"
+                orient="vertical"
+              />
+              <span className="text-xs text-muted-foreground">{strokeWidth}px</span>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Canvas */}
-      <div className="flex-1 relative overflow-auto" ref={canvasContainerRef}>
+      <div className={`flex-1 relative overflow-auto ${isMobile ? 'ml-0' : ''}`} ref={canvasContainerRef}>
         {/* Session Title Header */}
-        <div className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 py-2 shadow-sm">
+        <div className={`sticky top-0 z-20 bg-card border-b border-border px-4 py-2 shadow-sm ${isMobile ? 'pt-20' : ''}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">{sessionTitle || 'Whiteboard Session'}</h2>
-                <p className="text-sm text-gray-600">{sessionTopic || 'Interactive Learning Session'}</p>
+                <h2 className="text-lg font-semibold text-foreground">{sessionTitle || 'Whiteboard Session'}</h2>
+                <p className="text-sm text-muted-foreground">{sessionTopic || 'Interactive Learning Session'}</p>
               </div>
               {isAnimating && (
-                <div className="flex items-center space-x-2 text-blue-600">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <div className="flex items-center space-x-2 text-primary">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
                   <span className="text-sm">AI Drawing...</span>
                 </div>
               )}
             </div>
-            {onClose && (
-              <Button variant="outline" size="sm" onClick={onClose}>
-                Close Session
-              </Button>
-            )}
+            <div className="flex items-center space-x-2">
+              {isMobile && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowMobileMenu(!showMobileMenu)}
+                >
+                  {showMobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+                </Button>
+              )}
+              {onClose && (
+                <Button variant="outline" size="sm" onClick={onClose}>
+                  Close Session
+                </Button>
+              )}
+            </div>
           </div>
         </div>
         
         <div 
-          className="bg-white"
+          className="bg-card whiteboard-canvas"
           style={{ 
             width: stageSize.width, 
             height: stageSize.height,
-            minWidth: '100%',
-            minHeight: '100%'
+            minWidth: isMobile ? '100vw' : '100%',
+            minHeight: isMobile ? 'calc(100vh - 120px)' : '100%'
           }}
         >
           <Stage
             width={stageSize.width}
             height={stageSize.height}
-            onMouseDown={handleMouseDown}
-            onMousemove={handleMouseMove}
-            onMouseup={handleMouseUp}
+            onMouseDown={handlePointerDown}
+            onMousemove={handlePointerMove}
+            onMouseup={handlePointerUp}
+            onTouchStart={handlePointerDown}
+            onTouchMove={handlePointerMove}
+            onTouchEnd={handlePointerUp}
             ref={stageRef}
           >
             <Layer>
@@ -529,7 +715,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
 
         {/* Text Input Modal */}
         {showTextInput && (
-          <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-lg border z-10">
+          <div className="absolute top-4 left-4 bg-card p-4 rounded-lg shadow-lg border border-border z-10">
             <Input
               value={newText}
               onChange={(e) => setNewText(e.target.value)}
@@ -546,81 +732,164 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ sessionId, sessionTitle,
       </div>
 
       {/* Sidebar */}
-      <div className="w-80 bg-white border-l border-gray-200 flex flex-col overflow-hidden">
-        {/* Participants */}
-        <div className="p-4 border-b border-gray-200 flex-shrink-0">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium">Participants</h3>
-            <Badge variant="secondary">{participants.length}</Badge>
-          </div>
-          <div className="space-y-2 max-h-32 overflow-y-auto">
-            {participants.map((participant) => (
-              <div key={participant.id} className="flex items-center space-x-2">
-                <div 
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: participant.color }}
-                />
-                <span className="text-sm">{participant.user_name}</span>
-                <Badge variant="outline" className="text-xs">
-                  {participant.role}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Chat */}
-        {showChat && (
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="p-4 border-b border-gray-200 flex-shrink-0">
-              <h3 className="text-sm font-medium">Chat</h3>
+      {!isMobile && (
+        <div className="w-80 bg-card border-l border-border flex flex-col overflow-hidden">
+          {/* Participants */}
+          <div className="p-4 border-b border-border flex-shrink-0">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-foreground">Participants</h3>
+              <Badge variant="secondary">{participants.length}</Badge>
             </div>
-            <div className="flex-1 p-4 overflow-y-auto space-y-2 min-h-0">
-              {messages.map((message) => (
-                <div key={message.id} className="text-sm">
-                  <span className="font-medium">{message.user_name}:</span>
-                  <span className="ml-2">{message.message}</span>
+            <div className="space-y-2 max-h-32 overflow-y-auto">
+              {participants.map((participant) => (
+                <div key={participant.id} className="flex items-center space-x-2">
+                  <div 
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: participant.color }}
+                  />
+                  <span className="text-sm text-foreground">{participant.user_name}</span>
+                  <Badge variant="outline" className="text-xs">
+                    {participant.role}
+                  </Badge>
                 </div>
               ))}
             </div>
-            <div className="p-4 border-t border-gray-200 flex-shrink-0">
-              <div className="flex space-x-2">
-                <Input
-                  value={chatMessage}
-                  onChange={(e) => setChatMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                />
-                <Button size="sm" onClick={handleSendMessage}>Send</Button>
-              </div>
-            </div>
           </div>
-        )}
 
-        {/* Settings */}
-        {showSettings && (
-          <div className="flex-1 p-4 overflow-y-auto min-h-0">
-            <h3 className="text-sm font-medium mb-4">Settings</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">AI Assistant</label>
-                <AIAssistant 
-                  sessionId={sessionId}
-                  topic={sessionTopic || 'General Topic'}
-                  onAddElements={handleAddElements}
-                />
+          {/* Chat */}
+          {showChat && (
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="p-4 border-b border-border flex-shrink-0">
+                <h3 className="text-sm font-medium text-foreground">Chat</h3>
               </div>
-              <div>
-                <label className="text-sm font-medium">Session</label>
-                <FriendInvitationComponent 
-                  sessionId={sessionId}
-                  sessionTitle={sessionTitle || 'Whiteboard Session'}
-                />
+              <div className="flex-1 p-4 overflow-y-auto space-y-2 min-h-0">
+                {messages.map((message) => (
+                  <div key={message.id} className="text-sm">
+                    <span className="font-medium text-foreground">{message.user_name}:</span>
+                    <span className="ml-2 text-foreground">{message.message}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="p-4 border-t border-border flex-shrink-0">
+                <div className="flex space-x-2">
+                  <Input
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  />
+                  <Button size="sm" onClick={handleSendMessage}>Send</Button>
+                </div>
               </div>
             </div>
+          )}
+
+          {/* Settings */}
+          {showSettings && (
+            <div className="flex-1 p-4 overflow-y-auto min-h-0">
+              <h3 className="text-sm font-medium mb-4 text-foreground">Settings</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground">AI Assistant</label>
+                  <AIAssistant 
+                    sessionId={sessionId}
+                    topic={sessionTopic || 'General Topic'}
+                    onAddElements={handleAddElements}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Session</label>
+                  <FriendInvitationComponent 
+                    sessionId={sessionId}
+                    sessionTitle={sessionTitle || 'Whiteboard Session'}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobile && (showChat || showSettings) && (
+        <div className="fixed inset-0 bg-black/50 z-40" onClick={() => { setShowChat(false); setShowSettings(false); }}>
+          <div className="fixed right-0 top-0 h-full w-80 bg-card border-l border-border flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            {/* Participants */}
+            <div className="p-4 border-b border-border flex-shrink-0">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-foreground">Participants</h3>
+                <Badge variant="secondary">{participants.length}</Badge>
+              </div>
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {participants.map((participant) => (
+                  <div key={participant.id} className="flex items-center space-x-2">
+                    <div 
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: participant.color }}
+                    />
+                    <span className="text-sm text-foreground">{participant.user_name}</span>
+                    <Badge variant="outline" className="text-xs">
+                      {participant.role}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Chat */}
+            {showChat && (
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="p-4 border-b border-border flex-shrink-0">
+                  <h3 className="text-sm font-medium text-foreground">Chat</h3>
+                </div>
+                <div className="flex-1 p-4 overflow-y-auto space-y-2 min-h-0">
+                  {messages.map((message) => (
+                    <div key={message.id} className="text-sm">
+                      <span className="font-medium text-foreground">{message.user_name}:</span>
+                      <span className="ml-2 text-foreground">{message.message}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-4 border-t border-border flex-shrink-0">
+                  <div className="flex space-x-2">
+                    <Input
+                      value={chatMessage}
+                      onChange={(e) => setChatMessage(e.target.value)}
+                      placeholder="Type a message..."
+                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    />
+                    <Button size="sm" onClick={handleSendMessage}>Send</Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Settings */}
+            {showSettings && (
+              <div className="flex-1 p-4 overflow-y-auto min-h-0">
+                <h3 className="text-sm font-medium mb-4 text-foreground">Settings</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-foreground">AI Assistant</label>
+                    <AIAssistant 
+                      sessionId={sessionId}
+                      topic={sessionTopic || 'General Topic'}
+                      onAddElements={handleAddElements}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Session</label>
+                    <FriendInvitationComponent 
+                      sessionId={sessionId}
+                      sessionTitle={sessionTitle || 'Whiteboard Session'}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

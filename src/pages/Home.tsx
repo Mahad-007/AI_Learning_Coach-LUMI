@@ -1,26 +1,62 @@
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Brain, Zap, Target, Users, ArrowRight, CheckCircle2, Star } from "lucide-react";
+import { Brain, Zap, Target, Users, ArrowRight, CheckCircle2, Star, PenTool, MessageSquare, Trophy, BarChart3, BookOpen, User } from "lucide-react";
 import AOS from "aos";
 import heroImage from "@/assets/hero-illustration.jpg";
+import { useAuth } from "@/contexts/AuthContext";
 
 const features = [
+  // Core AI learning
   {
     icon: Brain,
     title: "AI Chat Coach",
-    description: "Get personalized guidance from your AI tutor, available 24/7 to help you master any subject.",
+    description: "24/7 personalized tutoring for any topic with step‑by‑step guidance.",
   },
   {
-    icon: Zap,
-    title: "Gamified XP System",
-    description: "Earn XP, unlock badges, and level up as you progress through your learning journey.",
+    icon: BookOpen,
+    title: "AI Lesson Generator",
+    description: "Instant lesson plans, explanations, and examples tailored to your level.",
   },
   {
     icon: Target,
     title: "Personalized Learning Paths",
-    description: "Custom learning paths tailored to your goals, skill level, and learning style.",
+    description: "Adaptive paths that match your goals, progress, and learning style.",
+  },
+
+  // Collaboration
+  {
+    icon: PenTool,
+    title: "Interactive Whiteboard",
+    description: "Realtime collaborative canvas with drawing, text, shapes, and AI assistance.",
+  },
+  {
+    icon: Users,
+    title: "Join by Code & Invite Friends",
+    description: "Create a session code to collaborate instantly with classmates or friends.",
+  },
+  {
+    icon: MessageSquare,
+    title: "Realtime Chat",
+    description: "Discuss concepts, share tips, and coordinate in-session with built‑in chat.",
+  },
+
+  // Practice & motivation
+  {
+    icon: Zap,
+    title: "Quizzes & Trivia",
+    description: "Practice with quizzes or battle friends in trivia rooms using shareable codes.",
+  },
+  {
+    icon: Trophy,
+    title: "Leaderboard & Badges",
+    description: "Climb leaderboards, unlock badges, and celebrate milestones with peers.",
+  },
+  {
+    icon: BarChart3,
+    title: "Progress Dashboard",
+    description: "Track XP, streaks, completed lessons, and recent achievements at a glance.",
   },
 ];
 
@@ -63,6 +99,11 @@ export default function Home() {
       easing: "ease-out",
     });
   }, []);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const handleStartLearning = () => {
+    navigate(user ? "/learn" : "/login");
+  };
 
   return (
     <div className="min-h-screen">
@@ -70,27 +111,22 @@ export default function Home() {
       <section className="relative overflow-hidden pt-24 pb-12 md:pt-32 md:pb-20">
         <div className="absolute inset-0 bg-gradient-hero opacity-10"></div>
         <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div data-aos="fade-right">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 leading-tight">
                 Your Personal{" "}
                 <span className="bg-gradient-primary bg-clip-text text-transparent">
                   AI Coach
                 </span>{" "}
                 for Every Skill
               </h1>
-              <p className="text-lg md:text-xl text-muted-foreground mb-8">
+              <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8">
                 Learn interactively, grow consistently, and have fun with AI-powered learning paths,
                 gamification, and personalized progress tracking.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button variant="hero" size="xl" asChild>
-                  <Link to="/signup">
-                    Start Learning <ArrowRight className="ml-2 w-5 h-5" />
-                  </Link>
-                </Button>
-                <Button variant="outline" size="xl" asChild>
-                  <Link to="/demo">Try Demo</Link>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <Button variant="hero" size="xl" onClick={handleStartLearning} className="w-full sm:w-auto">
+                  Start Learning <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
               </div>
             </div>
@@ -99,7 +135,7 @@ export default function Home() {
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                 <img
                   src={heroImage}
-                  alt="AI Learning Coach Interface"
+                  alt="Lumi Interface"
                   className="w-full h-auto animate-float"
                 />
                 <div className="absolute inset-0 bg-gradient-primary opacity-20"></div>
@@ -114,28 +150,28 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16" data-aos="fade-up">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Why Choose AI Learning Coach?
+              Why Choose Lumi?
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Experience the future of education with AI-powered personalized learning
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
                 <Card
                   key={index}
-                  className="p-8 hover:shadow-lg transition-all duration-300 hover:scale-105 group"
+                  className="p-6 sm:p-8 hover:shadow-lg transition-all duration-300 hover:scale-105 group"
                   data-aos="fade-up"
                   data-aos-delay={index * 100}
                 >
-                  <div className="w-14 h-14 bg-gradient-primary rounded-lg flex items-center justify-center mb-6 group-hover:shadow-glow transition-all duration-300">
-                    <Icon className="w-7 h-7 text-white" />
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-primary rounded-lg flex items-center justify-center mb-4 sm:mb-6 group-hover:shadow-glow transition-all duration-300">
+                    <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                  <p className="text-muted-foreground">{feature.description}</p>
+                  <h3 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3">{feature.title}</h3>
+                  <p className="text-sm sm:text-base text-muted-foreground">{feature.description}</p>
                 </Card>
               );
             })}
@@ -153,7 +189,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {steps.map((step, index) => (
               <div
                 key={index}
@@ -161,72 +197,37 @@ export default function Home() {
                 data-aos="zoom-in"
                 data-aos-delay={index * 100}
               >
-                <div className="w-20 h-20 mx-auto mb-6 bg-gradient-primary rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-glow">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-gradient-primary rounded-full flex items-center justify-center text-white text-xl sm:text-2xl font-bold shadow-glow">
                   {step.number}
                 </div>
-                <h3 className="text-xl font-bold mb-2">{step.title}</h3>
-                <p className="text-muted-foreground">{step.description}</p>
+                <h3 className="text-lg sm:text-xl font-bold mb-2">{step.title}</h3>
+                <p className="text-sm sm:text-base text-muted-foreground">{step.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16" data-aos="fade-up">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">What Learners Say</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Join thousands of successful learners worldwide
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <Card
-                key={index}
-                className="p-6 hover:shadow-lg transition-all duration-300"
-                data-aos="fade-up"
-                data-aos-delay={index * 100}
-              >
-                <div className="flex items-center gap-1 mb-4">
-                  {Array.from({ length: testimonial.rating }).map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-muted-foreground mb-6 italic">"{testimonial.quote}"</p>
-                <div className="flex items-center gap-3">
-                  <div className="text-4xl">{testimonial.avatar}</div>
-                  <div>
-                    <p className="font-semibold">{testimonial.name}</p>
-                    <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Testimonials section removed */}
 
       {/* CTA Section */}
       <section className="py-20">
         <div className="container mx-auto px-4">
           <Card
-            className="relative overflow-hidden p-12 text-center"
+            className="relative overflow-hidden p-6 sm:p-8 md:p-12 text-center"
             data-aos="zoom-in"
           >
             <div className="absolute inset-0 bg-gradient-hero opacity-10"></div>
             <div className="relative z-10">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
                 Ready to Start Your Learning Journey?
               </h2>
-              <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+              <p className="text-base sm:text-lg text-muted-foreground mb-6 sm:mb-8 max-w-2xl mx-auto">
                 Join thousands of learners and start achieving your goals today
               </p>
-              <Button variant="hero" size="xl" asChild>
+              <Button variant="hero" size="xl" asChild className="w-full sm:w-auto">
                 <Link to="/signup">
-                  Get Started Free <ArrowRight className="ml-2 w-5 h-5" />
+                  Get Started Free <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5" />
                 </Link>
               </Button>
             </div>

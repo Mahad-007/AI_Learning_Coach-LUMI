@@ -129,7 +129,7 @@ export default function SpacedRepetition() {
             <Card className="p-6 mb-6">
               <h3 className="text-xl font-bold mb-4">Method 2: Digital Tools</h3>
               <p className="text-muted-foreground mb-3">
-                Apps like Anki, Quizlet, and AI Learning Coach automatically calculate optimal review times based on your performance. Let technology do the scheduling for you.
+                Apps like Anki, Quizlet, and Lumi automatically calculate optimal review times based on your performance. Let technology do the scheduling for you.
               </p>
             </Card>
 
@@ -170,7 +170,7 @@ export default function SpacedRepetition() {
           <Card className="p-8 text-center bg-gradient-to-br from-primary/10 to-purple-500/10 mt-12">
             <h3 className="text-2xl font-bold mb-4">Remember More, Study Less</h3>
             <p className="text-muted-foreground mb-6">
-              AI Learning Coach uses spaced repetition to optimize your learning
+              Lumi uses spaced repetition to optimize your learning
             </p>
             <Button size="lg" asChild>
               <Link to="/signup">Try It Free</Link>

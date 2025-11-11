@@ -38,12 +38,12 @@ export default function Signup() {
         role: formData.role,
       });
       
-      toast.success("Account created successfully!", {
+      toast.success("Account created successfully! Please check your email to verify your account.", {
         icon: <CheckCircle2 className="w-5 h-5 text-success" />,
       });
 
       setTimeout(() => {
-        navigate("/dashboard");
+        navigate("/verify");
       }, 1000);
     } catch (error) {
       toast.error("Signup failed. Please try again.");
@@ -64,20 +64,20 @@ export default function Signup() {
       <div className="absolute bottom-20 right-10 w-40 h-40 bg-secondary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
       <div className="absolute top-40 right-20 w-24 h-24 bg-accent/20 rounded-full blur-2xl animate-float" style={{ animationDelay: "2s" }}></div>
 
-      <Card className="w-full max-w-md p-8 relative z-10 shadow-2xl">
-        <div className="text-center mb-8">
-          <div className="inline-flex p-3 bg-gradient-primary rounded-xl shadow-glow mb-4">
-            <Brain className="w-8 h-8 text-white" />
+      <Card className="w-full max-w-md p-6 sm:p-8 relative z-10 shadow-2xl">
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="inline-flex p-2 sm:p-3 bg-gradient-primary rounded-xl shadow-glow mb-3 sm:mb-4">
+            <img src="/logo.png" alt="Lumi Logo" className="w-6 h-6 sm:w-8 sm:h-8" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">Create Account</h1>
-          <p className="text-muted-foreground">Start your learning journey today</p>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Create Account</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Start your learning journey today</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
+            <Label htmlFor="name" className="text-sm sm:text-base">Full Name</Label>
             <div className="relative">
-              <User className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+              <User className="absolute left-3 top-3 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
               <Input
                 id="name"
                 name="name"
@@ -85,16 +85,16 @@ export default function Signup() {
                 placeholder="John Doe"
                 value={formData.name}
                 onChange={handleChange}
-                className="pl-10"
+                className="pl-9 sm:pl-10 text-sm sm:text-base"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-sm sm:text-base">Email</Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+              <Mail className="absolute left-3 top-3 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
               <Input
                 id="email"
                 name="email"
@@ -102,16 +102,16 @@ export default function Signup() {
                 placeholder="you@example.com"
                 value={formData.email}
                 onChange={handleChange}
-                className="pl-10"
+                className="pl-9 sm:pl-10 text-sm sm:text-base"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="text-sm sm:text-base">Password</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+              <Lock className="absolute left-3 top-3 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
               <Input
                 id="password"
                 name="password"
@@ -119,16 +119,16 @@ export default function Signup() {
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
-                className="pl-10"
+                className="pl-9 sm:pl-10 text-sm sm:text-base"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Label htmlFor="confirmPassword" className="text-sm sm:text-base">Confirm Password</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+              <Lock className="absolute left-3 top-3 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
               <Input
                 id="confirmPassword"
                 name="confirmPassword"
@@ -136,15 +136,15 @@ export default function Signup() {
                 placeholder="••••••••"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className="pl-10"
+                className="pl-9 sm:pl-10 text-sm sm:text-base"
                 required
               />
             </div>
           </div>
 
-          <div className="space-y-3">
-            <Label>I am a...</Label>
-            <div className="flex gap-4">
+          <div className="space-y-2 sm:space-y-3">
+            <Label className="text-sm sm:text-base">I am a...</Label>
+            <div className="flex gap-2 sm:gap-4">
               <label className="flex-1 cursor-pointer">
                 <input
                   type="radio"
@@ -154,8 +154,8 @@ export default function Signup() {
                   onChange={handleChange}
                   className="sr-only peer"
                 />
-                <div className="p-4 border-2 rounded-lg text-center peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
-                  <p className="font-medium">Student</p>
+                <div className="p-3 sm:p-4 border-2 rounded-lg text-center peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
+                  <p className="font-medium text-sm sm:text-base">Student</p>
                 </div>
               </label>
               <label className="flex-1 cursor-pointer">
@@ -167,8 +167,8 @@ export default function Signup() {
                   onChange={handleChange}
                   className="sr-only peer"
                 />
-                <div className="p-4 border-2 rounded-lg text-center peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
-                  <p className="font-medium">Educator</p>
+                <div className="p-3 sm:p-4 border-2 rounded-lg text-center peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
+                  <p className="font-medium text-sm sm:text-base">Educator</p>
                 </div>
               </label>
             </div>

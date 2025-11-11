@@ -1,18 +1,25 @@
 import { supabase } from '../lib/supabaseClient';
+import { EmailValidation } from '../lib/emailValidation';
 import type { SignupData, LoginData, AuthResponse, User } from '../types/user';
 
 /**
  * Authentication Service
- * Handles user registration, login, and profile management
+ * Handles user registration, login, and profile management using Supabase Auth
  */
 
 export class AuthService {
   /**
-   * Register a new user
+   * Register a new user using Supabase Auth
    */
   static async signup(data: SignupData): Promise<AuthResponse> {
     try {
-      // Sign up with Supabase Auth
+      // Validate email format and check for disposable emails
+      const emailValidation = EmailValidation.validateEmail(data.email);
+      if (!emailValidation.isValid) {
+        throw new Error(emailValidation.error || 'Invalid email address');
+      }
+
+      // Sign up with Supabase Auth - this will automatically send verification email
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -26,7 +33,7 @@ export class AuthService {
       if (authError) throw authError;
       if (!authData.user) throw new Error('User creation failed');
 
-      // Create user profile in users table
+      // Create user profile in users table (without custom verification fields)
       const { data: userData, error: userError } = await supabase
         .from('users')
         .insert({
@@ -37,11 +44,21 @@ export class AuthService {
           level: 1,
           streak: 0,
           persona: 'friendly',
+          // Remove custom email verification fields - use Supabase auth instead
         })
         .select()
         .single();
 
       if (userError) throw userError;
+
+      // Create initial leaderboard entry
+      await supabase.from('leaderboard').insert({
+        user_id: authData.user.id,
+        total_xp: 0,
+        weekly_xp: 0,
+        monthly_xp: 0,
+        rank: 0,
+      });
 
       // Award first user badge
       await this.awardFirstUserBadge(authData.user.id);
@@ -61,10 +78,16 @@ export class AuthService {
   }
 
   /**
-   * Login existing user
+   * Login existing user using Supabase Auth
    */
   static async login(data: LoginData): Promise<AuthResponse> {
     try {
+      // Validate email format and check for disposable emails
+      const emailValidation = EmailValidation.validateEmail(data.email);
+      if (!emailValidation.isValid) {
+        throw new Error(emailValidation.error || 'Invalid email address');
+      }
+
       // Sign in with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: data.email,
@@ -73,6 +96,15 @@ export class AuthService {
 
       if (authError) throw authError;
       if (!authData.user) throw new Error('Login failed');
+
+      // Check if email is verified using Supabase auth
+      if (!authData.user.email_confirmed_at) {
+        // Return redirect response for unverified users
+        throw new Error(JSON.stringify({ 
+          redirect: '/verify',
+          message: 'Please verify your email address to continue'
+        }));
+      }
 
       // Fetch user profile
       const { data: userData, error: userError } = await supabase
@@ -83,8 +115,22 @@ export class AuthService {
 
       if (userError) throw userError;
 
-      // Update streak if necessary
-      await this.updateLoginStreak(authData.user.id);
+      // Ensure leaderboard entry exists (for users created before this fix)
+      const { data: leaderboardEntry } = await supabase
+        .from('leaderboard')
+        .select('id')
+        .eq('user_id', authData.user.id)
+        .single();
+
+      if (!leaderboardEntry) {
+        await supabase.from('leaderboard').insert({
+          user_id: authData.user.id,
+          total_xp: userData.xp || 0,
+          weekly_xp: 0,
+          monthly_xp: 0,
+          rank: 0,
+        });
+      }
 
       return {
         user: userData as User,
@@ -101,7 +147,7 @@ export class AuthService {
   }
 
   /**
-   * Get current user profile
+   * Get current user profile using Supabase Auth
    */
   static async getCurrentUser(): Promise<User | null> {
     try {
@@ -117,10 +163,38 @@ export class AuthService {
 
       if (userError) return null;
 
-      return userData as User;
+      // Add email verification status from Supabase auth
+      const userWithVerification = {
+        ...userData,
+        email_verified: !!user.email_confirmed_at,
+        email_verified_at: user.email_confirmed_at,
+      };
+
+      return userWithVerification as User;
     } catch (error) {
       console.error('Get current user error:', error);
       return null;
+    }
+  }
+
+  /**
+   * Check if username is available
+   */
+  static async checkUsernameAvailability(username: string, currentUserId?: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id')
+        .eq('username', username)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      // Username is available if no data, or if it belongs to current user
+      return !data || (currentUserId && data.id === currentUserId);
+    } catch (error: any) {
+      console.error('Check username error:', error);
+      return false;
     }
   }
 
@@ -129,6 +203,14 @@ export class AuthService {
    */
   static async updateProfile(userId: string, updates: Partial<User>): Promise<User> {
     try {
+      // Check username availability if username is being updated
+      if (updates.username) {
+        const isAvailable = await this.checkUsernameAvailability(updates.username, userId);
+        if (!isAvailable) {
+          throw new Error('Username is already taken');
+        }
+      }
+
       const { data, error } = await supabase
         .from('users')
         .update({
@@ -220,6 +302,23 @@ export class AuthService {
       });
     } catch (error) {
       console.error('Failed to award first user badge:', error);
+    }
+  }
+
+  /**
+   * Resend verification email using Supabase Auth
+   */
+  static async resendVerificationEmail(email: string): Promise<void> {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Resend verification error:', error);
+      throw new Error(error.message || 'Failed to resend verification email');
     }
   }
 

@@ -157,7 +157,7 @@ export default function GamificationLearning() {
 
             <h2 className="text-3xl font-bold mt-12 mb-6">Your Turn to Play</h2>
             <p className="text-muted-foreground leading-relaxed mb-6">
-              Ready to experience the power of gamified learning? With AI Learning Coach, you'll earn XP, unlock achievements, compete in trivia battles, and climb leaderboards—all while mastering the skills you want to learn.
+              Ready to experience the power of gamified learning? With Lumi, you'll earn XP, unlock achievements, compete in trivia battles, and climb leaderboards—all while mastering the skills you want to learn.
             </p>
             <p className="text-muted-foreground leading-relaxed mb-6">
               The best part? You won't even realize you're learning because you'll be too busy having fun.

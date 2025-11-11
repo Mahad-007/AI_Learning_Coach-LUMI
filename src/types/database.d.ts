@@ -252,6 +252,8 @@ export interface Database {
           is_active: boolean
           max_participants: number
           current_participants: number
+          room_code: string | null
+          is_joinable: boolean
           settings: Json
           created_at: string
           updated_at: string
@@ -265,6 +267,8 @@ export interface Database {
           is_active?: boolean
           max_participants?: number
           current_participants?: number
+          room_code?: string | null
+          is_joinable?: boolean
           settings?: Json
           created_at?: string
           updated_at?: string
@@ -278,6 +282,8 @@ export interface Database {
           is_active?: boolean
           max_participants?: number
           current_participants?: number
+          room_code?: string | null
+          is_joinable?: boolean
           settings?: Json
           updated_at?: string
         }
@@ -427,7 +433,25 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_whiteboard_session_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      join_whiteboard_session_by_code: {
+        Args: {
+          session_code: string
+          user_id_param: string
+          user_name_param: string
+          user_avatar_param?: string | null
+          role_param?: string
+        }
+        Returns: {
+          session_id: string
+          session_title: string
+          session_topic: string
+          participant_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
@@ -438,7 +462,7 @@ export interface Database {
 export interface QuizQuestion {
   question: string
   options: string[]
-  correct_answer: string
+  correct_answer_index: number
   explanation?: string
 }
 

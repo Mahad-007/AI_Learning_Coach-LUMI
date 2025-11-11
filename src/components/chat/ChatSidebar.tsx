@@ -10,7 +10,6 @@ import {
   Check,
   X,
   TrendingUp,
-  Flame,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,7 +32,6 @@ interface ChatSidebarProps {
   userName?: string;
   userLevel?: number;
   userXP?: number;
-  userStreak?: number;
 }
 
 export function ChatSidebar({
@@ -43,7 +41,6 @@ export function ChatSidebar({
   userName,
   userLevel,
   userXP,
-  userStreak,
 }: ChatSidebarProps) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -154,10 +151,10 @@ export function ChatSidebar({
   };
 
   return (
-    <div className="h-full flex flex-col p-4 space-y-4">
+    <div className="h-full flex flex-col p-3 sm:p-4 space-y-3 sm:space-y-4">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent mb-1">
+        <h2 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent mb-1">
           AI Tutor
         </h2>
         <p className="text-xs text-muted-foreground">Gemini 2.0 Flash</p>
@@ -166,21 +163,21 @@ export function ChatSidebar({
       {/* New Chat Button */}
       <Button
         onClick={onNewChat}
-        className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all"
+        className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all h-10 sm:h-11"
       >
         <Plus className="w-4 h-4 mr-2" />
         New Chat
       </Button>
 
       {/* Stats Card */}
-      <Card className="p-4 bg-gradient-to-br from-primary/10 to-purple-500/10 border-primary/20">
-        <div className="space-y-3">
+      <Card className="p-3 sm:p-4 bg-gradient-to-br from-primary/10 to-purple-500/10 border-primary/20">
+        <div className="space-y-2 sm:space-y-3">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground flex items-center gap-1">
               <TrendingUp className="w-4 h-4" />
               Level {userLevel || 1}
             </span>
-            <span className="font-bold text-primary">{userXP || 0} XP</span>
+            <span className="font-bold text-primary text-sm sm:text-base">{userXP || 0} XP</span>
           </div>
           <div>
             <Progress 
@@ -190,10 +187,6 @@ export function ChatSidebar({
             <p className="text-xs text-muted-foreground mt-1.5">
               {Math.ceil(XPService.getXPForNextLevel(userLevel || 1) - (userXP || 0))} XP to Level {(userLevel || 1) + 1}
             </p>
-          </div>
-          <div className="flex items-center gap-2 text-sm pt-2 border-t border-border/30">
-            <Flame className="w-4 h-4 text-orange-500" />
-            <span className="text-muted-foreground">{userStreak || 0} day streak</span>
           </div>
         </div>
       </Card>
@@ -266,7 +259,7 @@ export function ChatSidebar({
                             {formatDate(session.updated_at)}
                           </p>
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                           <Button
                             size="icon"
                             variant="ghost"
@@ -298,8 +291,9 @@ export function ChatSidebar({
       <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t border-border/50">
         <p className="font-semibold text-foreground mb-1.5">💡 Quick Tips</p>
         <p>• Chats are auto-saved</p>
-        <p>• Click to switch chats</p>
-        <p>• Hover to edit/delete</p>
+        <p>• Tap to switch chats</p>
+        <p className="hidden sm:block">• Hover to edit/delete</p>
+        <p className="sm:hidden">• Tap buttons to edit/delete</p>
       </div>
     </div>
   );

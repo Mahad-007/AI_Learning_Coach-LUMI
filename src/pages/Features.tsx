@@ -126,7 +126,7 @@ export default function Features() {
             </span>
           </h1>
           <p className="text-xl text-muted-foreground">
-            Discover the powerful features that make AI Learning Coach the ultimate platform for personalized education
+            Discover the powerful features that make Lumi the ultimate platform for personalized education
           </p>
         </div>
 
@@ -190,7 +190,7 @@ export default function Features() {
         {/* Benefits Section */}
         <Card className="p-8 md:p-12 mb-20" data-aos="fade-up">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl font-bold mb-8 text-center">Why Choose AI Learning Coach?</h2>
+            <h2 className="text-3xl font-bold mb-8 text-center">Why Choose Lumi?</h2>
             <div className="grid md:grid-cols-2 gap-4">
               {benefits.map((benefit, index) => (
                 <div key={index} className="flex items-start gap-3">
@@ -207,7 +207,7 @@ export default function Features() {
           <Card className="p-12 bg-gradient-to-br from-primary/10 to-purple-500/10 border-primary/20">
             <h2 className="text-3xl font-bold mb-4">Ready to Transform Your Learning?</h2>
             <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Join thousands of learners who are already achieving their goals with AI Learning Coach
+              Join thousands of learners who are already achieving their goals with Lumi
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a

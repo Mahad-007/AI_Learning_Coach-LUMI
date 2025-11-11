@@ -31,32 +31,7 @@ export default function AboutUs() {
     },
   ];
 
-  const team = [
-    {
-      name: "Dr. Sarah Johnson",
-      role: "CEO & Co-Founder",
-      avatar: "👩‍💼",
-      bio: "Former AI researcher at MIT with 15+ years in EdTech",
-    },
-    {
-      name: "Michael Chen",
-      role: "CTO & Co-Founder",
-      avatar: "👨‍💻",
-      bio: "Led engineering teams at Google and Microsoft",
-    },
-    {
-      name: "Emily Rodriguez",
-      role: "Head of Education",
-      avatar: "👩‍🏫",
-      bio: "20+ years experience in curriculum development",
-    },
-    {
-      name: "David Park",
-      role: "Head of Product",
-      avatar: "👨‍🎨",
-      bio: "Product design veteran from Apple and Duolingo",
-    },
-  ];
+  // Team section removed
 
   return (
     <div className="min-h-screen pt-20 pb-12">
@@ -83,13 +58,13 @@ export default function AboutUs() {
             <h2 className="text-3xl font-bold mb-6">Our Story</h2>
             <div className="space-y-4 text-muted-foreground leading-relaxed">
               <p>
-                AI Learning Coach was born from a simple observation: traditional education often fails to adapt to individual learning styles, paces, and interests. We believed there had to be a better way.
+                Lumi was born from a simple observation: traditional education often fails to adapt to individual learning styles, paces, and interests. We believed there had to be a better way.
               </p>
               <p>
                 In 2023, our founding team came together with a shared vision—to leverage artificial intelligence to create truly personalized learning experiences. We combined decades of experience in AI research, education, and product design to build a platform that adapts to each learner's unique needs.
               </p>
               <p>
-                Today, thousands of learners worldwide use AI Learning Coach to master new skills, achieve their goals, and unlock their full potential. But we're just getting started.
+                Today, thousands of learners worldwide use Lumi to master new skills, achieve their goals, and unlock their full potential. But we're just getting started.
               </p>
             </div>
           </Card>
@@ -148,51 +123,9 @@ export default function AboutUs() {
           </div>
         </div>
 
-        {/* Team */}
-        <div>
-          <div className="text-center mb-12" data-aos="fade-down">
-            <h2 className="text-3xl font-bold mb-4">Meet Our Team</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Passionate educators, engineers, and innovators working together
-            </p>
-          </div>
+        {/* Team section removed */}
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {team.map((member, index) => (
-              <Card
-                key={index}
-                className="p-6 text-center hover:shadow-lg transition-all duration-300"
-                data-aos="fade-up"
-                data-aos-delay={index * 100}
-              >
-                <div className="text-6xl mb-4">{member.avatar}</div>
-                <h3 className="text-lg font-bold mb-1">{member.name}</h3>
-                <p className="text-sm text-primary font-medium mb-3">{member.role}</p>
-                <p className="text-xs text-muted-foreground">{member.bio}</p>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-20" data-aos="fade-up">
-          <Card className="p-6 text-center">
-            <div className="text-4xl font-bold text-primary mb-2">50K+</div>
-            <p className="text-sm text-muted-foreground">Active Learners</p>
-          </Card>
-          <Card className="p-6 text-center">
-            <div className="text-4xl font-bold text-primary mb-2">1M+</div>
-            <p className="text-sm text-muted-foreground">Lessons Completed</p>
-          </Card>
-          <Card className="p-6 text-center">
-            <div className="text-4xl font-bold text-primary mb-2">150+</div>
-            <p className="text-sm text-muted-foreground">Countries Reached</p>
-          </Card>
-          <Card className="p-6 text-center">
-            <div className="text-4xl font-bold text-primary mb-2">4.9/5</div>
-            <p className="text-sm text-muted-foreground">User Rating</p>
-          </Card>
-        </div>
+        {/* Stats section removed */}
       </div>
     </div>
   );

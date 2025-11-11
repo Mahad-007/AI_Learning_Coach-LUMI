@@ -18,8 +18,8 @@ export default function FAQ() {
       category: "General",
       questions: [
         {
-          q: "What is AI Learning Coach?",
-          a: "AI Learning Coach is an intelligent learning platform that uses artificial intelligence to provide personalized tutoring, adaptive quizzes, and gamified learning experiences. Our AI adapts to your learning style and pace to help you master any subject."
+          q: "What is Lumi?",
+          a: "Lumi is an intelligent learning platform that uses artificial intelligence to provide personalized tutoring, adaptive quizzes, and gamified learning experiences. Our AI adapts to your learning style and pace to help you master any subject."
         },
         {
           q: "How does the AI tutor work?",

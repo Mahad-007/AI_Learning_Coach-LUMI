@@ -1,5 +1,8 @@
 import { supabase } from '../lib/supabaseClient';
 import { generateStructuredContent } from '../lib/geminiClient';
+import { GamificationService } from './gamificationService';
+import { AchievementSystem } from './achievementSystem';
+import { XPUpdateService } from './xpUpdateService';
 import type {
   Quiz,
   QuizQuestion,
@@ -54,7 +57,7 @@ export class QuizService {
       );
 
       // Generate quiz using Gemini
-      const quizData = await generateStructuredContent<{ questions: QuizQuestion[] }>(
+      const quizData = await generateStructuredContent<QuizQuestion[]>(
         prompt,
         persona
       );
@@ -62,7 +65,7 @@ export class QuizService {
       // Calculate XP reward
       const xpReward = this.calculateQuizXPReward(
         request.difficulty,
-        quizData.questions.length
+        quizData.length
       );
 
       // Save quiz to database
@@ -71,7 +74,7 @@ export class QuizService {
         .insert({
           lesson_id: request.lesson_id,
           user_id: userId,
-          questions: quizData.questions,
+          questions: quizData,
           xp_reward: xpReward,
         })
         .select()
@@ -137,13 +140,13 @@ export class QuizService {
       );
 
       // Generate quiz using Gemini
-      const quizData = await generateStructuredContent<{ questions: QuizQuestion[] }>(
+      const quizData = await generateStructuredContent<QuizQuestion[]>(
         prompt,
         persona
       );
 
       // Calculate XP reward
-      const xpReward = this.calculateQuizXPReward(adaptedDifficulty, quizData.questions.length);
+      const xpReward = this.calculateQuizXPReward(adaptedDifficulty, quizData.length);
 
       // Save quiz to database
       const { data: savedQuiz, error: quizError } = await supabase
@@ -151,7 +154,7 @@ export class QuizService {
         .insert({
           lesson_id: request.lesson_id,
           user_id: userId,
-          questions: quizData.questions,
+          questions: quizData,
           xp_reward: xpReward,
         })
         .select()
@@ -211,14 +214,14 @@ export class QuizService {
 
       quiz.questions.forEach((question, index) => {
         const selectedAnswer = submission.answers[index];
-        const isCorrect = selectedAnswer === question.correct_answer;
+        const isCorrect = selectedAnswer === question.correct_answer_index.toString();
 
         if (isCorrect) correctCount++;
 
         results.push({
           question: question.question,
           selected_answer: selectedAnswer || '',
-          correct_answer: question.correct_answer,
+          correct_answer: question.correct_answer_index.toString(),
           is_correct: isCorrect,
           explanation: question.explanation,
         });
@@ -242,13 +245,31 @@ export class QuizService {
         .eq('user_id', userId)
         .eq('lesson_id', quiz.lesson_id);
 
-      // Award XP
-      await this.awardQuizXP(userId, xpEarned, percentage);
+      // Award XP using dedicated service
+      const difficulty = quiz.questions.length >= 10 ? 'advanced' : 
+                        quiz.questions.length >= 5 ? 'intermediate' : 'beginner';
+      await XPUpdateService.addXP(userId, xpEarned, `quiz_${difficulty}_${percentage}%`);
 
-      // Award perfect score badge if applicable
+      // Award first-time quiz badge (if first quiz)
+      await AchievementSystem.awardFirstTimeBadge(userId, {
+        badge_type: 'first_time',
+        badge_name: 'Quiz Beginner',
+        badge_description: 'Completed your first quiz',
+        badge_icon: '📝',
+      });
+
+      // Award first-time perfect score badge (if 100%)
       if (percentage === 100) {
-        await this.awardPerfectScoreBadge(userId);
+        await AchievementSystem.awardFirstTimeBadge(userId, {
+          badge_type: 'first_time',
+          badge_name: 'Perfect Start',
+          badge_description: 'Achieved your first perfect score',
+          badge_icon: '🎊',
+        });
       }
+
+      // Trigger database achievement evaluation (for count-based achievements)
+      await AchievementSystem.evaluateAchievements();
 
       return {
         quiz_id: quiz.id,
@@ -335,33 +356,38 @@ export class QuizService {
     numQuestions: number,
     lessonContent: string
   ): string {
-    return `Create a multiple-choice quiz based on the following lesson:
+    return `Generate a ${numQuestions} question multiple-choice quiz about ${topic}.
 
-Subject: ${subject}
-Topic: ${topic}
-Difficulty: ${difficulty}
-Number of Questions: ${numQuestions}
+**CRITICAL:** You must format the entire response as a single, valid JSON array. Do not include any text before or after the JSON.
 
-Lesson Content:
+Each object in the array represents one question and **must** follow this exact structure:
+{
+  "question": "The full text of the question?",
+  "options": [
+    "Text for option A",
+    "Text for option B", 
+    "Text for option C",
+    "Text for option D"
+  ],
+  "correct_answer_index": 2,
+  "explanation": "Brief explanation of why this answer is correct"
+}
+
+**Rules for the quiz content:**
+1. **Question & Options:** The \`question\` must be a clear string. The \`options\` array must contain exactly 4 unique, plausible, and distinct strings.
+2. **Correct Answer:** The \`correct_answer_index\` is the **only** way to indicate the correct answer. It must be a 0-based index (0, 1, 2, or 3).
+3. **Randomization:** The position of the correct answer (the \`correct_answer_index\`) **must be randomized** for each question.
+4. **Explanation:** The \`explanation\` must provide a clear, brief explanation of why the correct answer is right.
+
+**Lesson Content:**
 ${lessonContent.substring(0, 2000)} ${lessonContent.length > 2000 ? '...' : ''}
 
-Please generate ${numQuestions} multiple-choice questions that:
-1. Test understanding of key concepts from the lesson
-2. Are appropriate for ${difficulty} level
-3. Have 4 options each
-4. Include an explanation for the correct answer
+**Difficulty Level:** ${difficulty}
+- Beginner: Basic concepts and definitions
+- Intermediate: Application and understanding
+- Advanced: Complex analysis and critical thinking
 
-Return the response as a JSON object with this exact structure:
-{
-  "questions": [
-    {
-      "question": "Question text?",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correct_answer": "Option A",
-      "explanation": "Explanation of why this is correct"
-    }
-  ]
-}`;
+Generate questions that test understanding of key concepts from the lesson content above.`;
   }
 
   /**
@@ -374,40 +400,42 @@ Return the response as a JSON object with this exact structure:
     lessonContent: string,
     focusAreas?: string[]
   ): string {
-    let prompt = `Create an adaptive multiple-choice quiz based on the following lesson:
+    let prompt = `Generate a 5 question multiple-choice quiz about ${topic}.
 
-Subject: ${subject}
-Topic: ${topic}
-Adapted Difficulty: ${difficulty}
+**CRITICAL:** You must format the entire response as a single, valid JSON array. Do not include any text before or after the JSON.
 
-Lesson Content:
+Each object in the array represents one question and **must** follow this exact structure:
+{
+  "question": "The full text of the question?",
+  "options": [
+    "Text for option A",
+    "Text for option B", 
+    "Text for option C",
+    "Text for option D"
+  ],
+  "correct_answer_index": 2,
+  "explanation": "Brief explanation of why this answer is correct"
+}
+
+**Rules for the quiz content:**
+1. **Question & Options:** The \`question\` must be a clear string. The \`options\` array must contain exactly 4 unique, plausible, and distinct strings.
+2. **Correct Answer:** The \`correct_answer_index\` is the **only** way to indicate the correct answer. It must be a 0-based index (0, 1, 2, or 3).
+3. **Randomization:** The position of the correct answer (the \`correct_answer_index\`) **must be randomized** for each question.
+4. **Explanation:** The \`explanation\` must provide a clear, brief explanation of why the correct answer is right.
+
+**Lesson Content:**
 ${lessonContent.substring(0, 2000)} ${lessonContent.length > 2000 ? '...' : ''}
-`;
+
+**Adapted Difficulty Level:** ${difficulty}
+- Beginner: Basic concepts and definitions
+- Intermediate: Application and understanding  
+- Advanced: Complex analysis and critical thinking`;
 
     if (focusAreas && focusAreas.length > 0) {
-      prompt += `\nFocus Areas: ${focusAreas.join(', ')}`;
-      prompt += `\nPlease emphasize questions related to these focus areas.`;
+      prompt += `\n\n**Focus Areas:** ${focusAreas.join(', ')}\nPlease emphasize questions related to these focus areas.`;
     }
 
-    prompt += `
-
-Generate 5 multiple-choice questions that:
-1. Are tailored to ${difficulty} difficulty level
-2. Test deep understanding of the concepts
-3. Have 4 options each
-4. Include detailed explanations
-
-Return the response as a JSON object with this exact structure:
-{
-  "questions": [
-    {
-      "question": "Question text?",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correct_answer": "Option A",
-      "explanation": "Detailed explanation"
-    }
-  ]
-}`;
+    prompt += `\n\nGenerate questions that test understanding of key concepts from the lesson content above.`;
 
     return prompt;
   }
@@ -461,32 +489,6 @@ Return the response as a JSON object with this exact structure:
     }
   }
 
-  /**
-   * Private helper: Award perfect score badge
-   */
-  private static async awardPerfectScoreBadge(userId: string): Promise<void> {
-    try {
-      // Check if user already has this badge
-      const { data: existingBadge } = await supabase
-        .from('badges')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('badge_type', 'perfect_quiz')
-        .single();
-
-      if (!existingBadge) {
-        await supabase.from('badges').insert({
-          user_id: userId,
-          badge_type: 'perfect_quiz',
-          badge_name: 'Perfect Score',
-          badge_description: 'Achieved 100% on a quiz',
-          badge_icon: '🏆',
-        });
-      }
-    } catch (error) {
-      console.error('Failed to award perfect score badge:', error);
-    }
-  }
 }
 
 export default QuizService;

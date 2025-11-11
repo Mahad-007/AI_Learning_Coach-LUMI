@@ -1,5 +1,8 @@
 import { supabase } from '../lib/supabaseClient';
 import { generateWithPersona, generateStreamWithPersona } from '../lib/geminiClient';
+import { GamificationService } from './gamificationService';
+import { AchievementSystem } from './achievementSystem';
+import { XPUpdateService } from './xpUpdateService';
 import type { ChatRequest, ChatResponse, ChatMessage, StreamChatRequest } from '../types/ai';
 import type { Persona } from '../types/user';
 
@@ -33,8 +36,8 @@ export class ChatService {
       // Generate AI response
       const aiResponse = await generateWithPersona(prompt, persona);
 
-      // Calculate XP reward (base 5 XP per message)
-      const xpGained = 5;
+      // Calculate XP reward (1 XP per message)
+      const xpGained = 1;
 
       // Save to chat history
       const insertWithRoles = async (base: any) => {
@@ -85,8 +88,19 @@ export class ChatService {
       if (chatDataResp.error) throw chatDataResp.error;
       const chatData = chatDataResp.data;
 
-      // Update user XP
-      await this.updateUserXP(normalizedUserId, xpGained);
+      // Update user XP using dedicated service
+      await XPUpdateService.addXP(normalizedUserId, xpGained, 'chat_message');
+
+      // Award first-time chat badge (if first message)
+      await AchievementSystem.awardFirstTimeBadge(normalizedUserId, {
+        badge_type: 'first_time',
+        badge_name: 'Conversation Starter',
+        badge_description: 'Sent your first AI chat message',
+        badge_icon: '💬',
+      });
+
+      // Trigger database achievement evaluation (for count-based achievements)
+      await AchievementSystem.evaluateAchievements();
 
       return {
         reply: aiResponse,
@@ -123,8 +137,8 @@ export class ChatService {
       // Generate AI response with streaming
       const aiResponse = await generateStreamWithPersona(prompt, persona, request.onChunk);
 
-      // Calculate XP reward
-      const xpGained = 5;
+      // Calculate XP reward (1 XP per message)
+      const xpGained = 1;
 
       // Save to chat history
       const { data: chatData, error: chatError } = await supabase
@@ -142,8 +156,19 @@ export class ChatService {
 
       if (chatError) throw chatError;
 
-      // Update user XP
-      await this.updateUserXP(userId, xpGained);
+      // Update user XP using dedicated service
+      await XPUpdateService.addXP(userId, xpGained, 'chat_message_stream');
+
+      // Award first-time chat badge (if first message)
+      await AchievementSystem.awardFirstTimeBadge(userId, {
+        badge_type: 'first_time',
+        badge_name: 'Conversation Starter',
+        badge_description: 'Sent your first AI chat message',
+        badge_icon: '💬',
+      });
+
+      // Trigger database achievement evaluation (for count-based achievements)
+      await AchievementSystem.evaluateAchievements();
 
       return {
         reply: aiResponse,
@@ -256,6 +281,11 @@ export class ChatService {
     topic?: string,
     context?: string[]
   ): string {
+    // Content filtering check
+    if (this.containsInappropriateContent(message)) {
+      return `The user's message contains inappropriate content that cannot be addressed. Please politely decline and redirect to educational topics.`;
+    }
+
     let prompt = '';
 
     if (topic) {
@@ -273,23 +303,58 @@ export class ChatService {
   }
 
   /**
+   * Private helper: Check for inappropriate content
+   */
+  private static containsInappropriateContent(message: string): boolean {
+    const inappropriateKeywords = [
+      // Adult content
+      'sex', 'sexual', 'porn', 'pornography', 'adult', 'explicit', 'nude', 'naked',
+      // Violence
+      'violence', 'kill', 'murder', 'weapon', 'gun', 'bomb', 'terrorist',
+      // Drugs and alcohol
+      'drug', 'cocaine', 'heroin', 'marijuana', 'alcohol', 'drunk', 'high',
+      // Gambling
+      'gambling', 'casino', 'bet', 'poker', 'slot machine',
+      // Other inappropriate content
+      'suicide', 'self-harm', 'hate speech', 'racist', 'discrimination'
+    ];
+
+    const lowerMessage = message.toLowerCase();
+    return inappropriateKeywords.some(keyword => lowerMessage.includes(keyword));
+  }
+
+  /**
    * Private helper: Update user XP
    */
   private static async updateUserXP(userId: string, xpGained: number): Promise<void> {
     try {
+      console.log(`[ChatService] Updating XP for user ${userId}: +${xpGained} XP`);
+      
       // Get current user XP
-      const { data: user } = await supabase
+      const { data: user, error: fetchError } = await supabase
         .from('users')
         .select('xp, level')
         .eq('id', userId)
         .single();
 
-      if (!user) return;
+      if (fetchError) {
+        console.error('[ChatService] Error fetching user for XP update:', fetchError);
+        throw fetchError;
+      }
 
+      if (!user) {
+        console.error('[ChatService] User not found for XP update');
+        return;
+      }
+
+      const oldXP = user.xp;
       const newXP = user.xp + xpGained;
+      const oldLevel = user.level;
       const newLevel = this.calculateLevel(newXP);
 
-      await supabase
+      console.log(`[ChatService] XP update: ${oldXP} → ${newXP} (Level ${oldLevel} → ${newLevel})`);
+
+      const { error: updateError } = await supabase
         .from('users')
         .update({ 
           xp: newXP,
@@ -297,8 +362,32 @@ export class ChatService {
           updated_at: new Date().toISOString(),
         })
         .eq('id', userId);
+
+      if (updateError) {
+        console.error('[ChatService] Error updating user XP:', updateError);
+        throw updateError;
+      }
+
+      console.log(`[ChatService] ✓ XP updated successfully in database`);
+
+      // Update leaderboard
+      const { error: leaderboardError } = await supabase
+        .from('leaderboard')
+        .update({ 
+          total_xp: newXP,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId);
+
+      if (leaderboardError) {
+        console.error('[ChatService] Error updating leaderboard:', leaderboardError);
+      } else {
+        console.log('[ChatService] ✓ Leaderboard updated');
+      }
+
     } catch (error) {
-      console.error('Failed to update user XP:', error);
+      console.error('[ChatService] Failed to update user XP:', error);
+      throw error; // Re-throw to see errors
     }
   }
 

@@ -66,7 +66,7 @@ export default function HelpCenter() {
   ];
 
   const popularArticles = [
-    "How do I get started with AI Learning Coach?",
+    "How do I get started with Lumi?",
     "What's the difference between Free and Pro plans?",
     "How does the XP system work?",
     "Can I cancel my subscription anytime?",

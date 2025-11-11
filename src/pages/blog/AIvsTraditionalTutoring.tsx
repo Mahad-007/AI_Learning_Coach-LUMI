@@ -209,7 +209,7 @@ export default function AIvsTraditionalTutoring() {
               The best educational systems of the future won't choose between AI and human tutors—they'll use both strategically. AI handles the scalable, repeatable aspects of tutoring, freeing human tutors to focus on what they do best: inspiring, motivating, and providing that irreplaceable human connection.
             </p>
             <p className="text-muted-foreground leading-relaxed mb-6">
-              At AI Learning Coach, we're not trying to replace human teachers. We're augmenting their impact, making quality education accessible to everyone while preserving the irreplaceable value of human guidance and mentorship.
+              At Lumi, we're not trying to replace human teachers. We're augmenting their impact, making quality education accessible to everyone while preserving the irreplaceable value of human guidance and mentorship.
             </p>
           </div>
 
