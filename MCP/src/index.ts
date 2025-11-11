@@ -19,6 +19,9 @@ loadEnv();
 
 type Persona = 'friendly' | 'strict' | 'fun' | 'scholar';
 type Difficulty = 'beginner' | 'intermediate' | 'advanced';
+const difficultyLevels: Difficulty[] = ['beginner', 'intermediate', 'advanced'];
+const DEFAULT_LESSON_DURATION = 30;
+const DEFAULT_NUM_QUESTIONS = 5;
 
 const personaPrompts: Record<Persona, string> = {
   friendly: `You are a friendly and encouraging AI tutor. Your teaching style is warm and supportive. 
@@ -121,7 +124,123 @@ class GeminiProvider {
 }
 
 class LearningCoachBackend {
+  private cachedDefaultUserId: string | null = null;
+
   constructor(private readonly supabase: SupabaseClient, private readonly gemini: GeminiProvider) {}
+
+  async resolveUserId(userId?: string): Promise<string> {
+    if (userId && userId.trim().length > 0) {
+      return userId;
+    }
+
+    if (this.cachedDefaultUserId) {
+      return this.cachedDefaultUserId;
+    }
+
+    const envUserId =
+      process.env.DEFAULT_MCP_USER_ID ||
+      process.env.DEFAULT_SUPABASE_USER_ID ||
+      process.env.DEFAULT_SUPABASE_USERID ||
+      process.env.SUPABASE_DEMO_USER_ID;
+
+    if (envUserId && envUserId.trim().length > 0) {
+      this.cachedDefaultUserId = envUserId.trim();
+      return this.cachedDefaultUserId;
+    }
+
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('id')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data?.id) {
+      throw new Error(
+        'No userId provided and a default user could not be resolved. Configure DEFAULT_MCP_USER_ID or ensure at least one user exists.'
+      );
+    }
+
+    this.cachedDefaultUserId = data.id;
+    return data.id;
+  }
+
+  async inferLessonDetailsFromPrompt(
+    prompt: string,
+    overrides?: Partial<Omit<InferredLessonDetails, 'difficulty'>> & { difficulty?: Difficulty }
+  ): Promise<InferredLessonDetails> {
+    const safePrompt = prompt && prompt.trim().length > 0 ? prompt.trim() : 'Create a general study session.';
+
+    const extractionPrompt = `You are an educational planning assistant. Analyze the learner request below and extract the key lesson planning details.
+Always respond with STRICT JSON using the following schema:
+{
+  "subject": "short subject name (e.g., Mathematics, World History)",
+  "topic": "focused topic title",
+  "difficulty": "beginner | intermediate | advanced",
+  "duration": 45,
+  "num_questions": 6
+}
+- Subject and topic must be concise but descriptive.
+- Difficulty must be exactly one of the allowed values.
+- Duration is the number of minutes as an integer between 15 and 120.
+- num_questions is the desired quiz length between 3 and 12.
+- If the request doesn't specify something, choose sensible defaults.
+
+Learner request:
+"""${safePrompt}"""
+`;
+
+    type ExtractionResponse = {
+      subject?: string;
+      topic?: string;
+      difficulty?: string;
+      duration?: number;
+      num_questions?: number;
+    };
+
+    let extracted: ExtractionResponse = {};
+
+    try {
+      extracted = await this.gemini.generateStructuredContent<ExtractionResponse>(extractionPrompt, 'scholar');
+    } catch (error) {
+      console.warn('Falling back to defaults after extraction failure', error);
+    }
+
+    const subject =
+      overrides?.subject ??
+      extracted.subject?.trim() ??
+      extracted.topic?.trim() ??
+      'General Learning';
+
+    const topic =
+      overrides?.topic ??
+      extracted.topic?.trim() ??
+      extracted.subject?.trim() ??
+      subject;
+
+    const rawDifficulty = (overrides?.difficulty ?? extracted.difficulty)?.toLowerCase();
+    const difficulty = difficultyLevels.includes(rawDifficulty as Difficulty)
+      ? (rawDifficulty as Difficulty)
+      : 'beginner';
+
+    const rawDuration = overrides?.duration ?? extracted.duration;
+    const duration = Number.isFinite(rawDuration)
+      ? Math.min(120, Math.max(15, Math.round(rawDuration as number)))
+      : DEFAULT_LESSON_DURATION;
+
+    const rawNumQuestions = overrides?.numQuestions ?? extracted.num_questions;
+    const numQuestions = Number.isFinite(rawNumQuestions)
+      ? Math.min(12, Math.max(3, Math.round(rawNumQuestions as number)))
+      : DEFAULT_NUM_QUESTIONS;
+
+    return {
+      subject: subject || 'General Learning',
+      topic: topic || subject || 'General Learning',
+      difficulty,
+      duration,
+      numQuestions,
+    };
+  }
 
   async generateLesson(input: {
     userId: string;
@@ -182,9 +301,10 @@ class LearningCoachBackend {
     lessonId: string;
     difficulty: Difficulty;
     numQuestions?: number;
+    persona?: Persona;
     model?: string;
   }) {
-    const persona = await this.resolvePersona(input.userId);
+    const persona = await this.resolvePersona(input.userId, input.persona);
     const { data: lesson, error: lessonError } = await this.supabase
       .from('lessons')
       .select('content, topic, subject')
@@ -358,6 +478,14 @@ type QuizQuestion = {
   options: string[];
   correct_answer: string;
   explanation: string;
+};
+
+type InferredLessonDetails = {
+  subject: string;
+  topic: string;
+  difficulty: Difficulty;
+  duration: number;
+  numQuestions: number;
 };
 
 function buildLessonPrompt(input: {
@@ -534,13 +662,26 @@ function registerTools(server: McpServer, backend: LearningCoachBackend) {
     'generate_lesson',
     {
       title: 'Generate Lesson',
-      description: 'Generate and store an AI-powered lesson for a learner',
+      description:
+        'Generate and store an AI-powered lesson for a learner. Provide a prompt and the tool will infer missing details automatically.',
       inputSchema: {
-        userId: z.string().min(1).describe('Supabase user id'),
-        subject: z.string().min(1).describe('Lesson subject'),
-        topic: z.string().min(1).describe('Lesson topic'),
-        difficulty: z.enum(['beginner', 'intermediate', 'advanced']).describe('Lesson difficulty'),
-        duration: z.number().int().positive().describe('Estimated duration in minutes'),
+        userId: z.string().min(1).optional().describe('Supabase user id (optional, defaults to configured demo user)'),
+        subject: z.string().min(1).optional().describe('Lesson subject'),
+        topic: z.string().min(1).optional().describe('Lesson topic'),
+        difficulty: z
+          .enum(['beginner', 'intermediate', 'advanced'])
+          .optional()
+          .describe('Lesson difficulty'),
+        duration: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe('Estimated duration in minutes'),
+        prompt: z
+          .string()
+          .optional()
+          .describe('Natural language request to infer subject/topic/difficulty automatically'),
         persona: z.enum(['friendly', 'strict', 'fun', 'scholar']).optional().describe('Tutor persona override'),
         model: z.string().optional().describe('Gemini model override for this request'),
       },
@@ -551,12 +692,31 @@ function registerTools(server: McpServer, backend: LearningCoachBackend) {
       },
     },
     async (args): Promise<ToolResult> => {
+      const userId = await backend.resolveUserId(args.userId);
+      let subject = (args.subject as string | undefined)?.trim();
+      let topic = (args.topic as string | undefined)?.trim();
+      let difficulty = args.difficulty as Difficulty | undefined;
+      let duration = args.duration as number | undefined;
+
+      if (!subject || !topic || !difficulty || !duration) {
+        const inferred = await backend.inferLessonDetailsFromPrompt(args.prompt ?? subject ?? topic ?? '');
+        subject = subject ?? inferred.subject;
+        topic = topic ?? inferred.topic;
+        difficulty = difficulty ?? inferred.difficulty;
+        duration = duration ?? inferred.duration;
+      }
+
+      subject = subject ?? 'General Learning';
+      topic = topic ?? subject;
+      difficulty = difficulty ?? 'beginner';
+      duration = duration ?? DEFAULT_LESSON_DURATION;
+
       const result = await backend.generateLesson({
-        userId: args.userId,
-        subject: args.subject,
-        topic: args.topic,
-        difficulty: args.difficulty as Difficulty,
-        duration: args.duration,
+        userId,
+        subject,
+        topic,
+        difficulty,
+        duration,
         persona: args.persona as Persona | undefined,
         model: args.model,
       });
@@ -583,12 +743,29 @@ function registerTools(server: McpServer, backend: LearningCoachBackend) {
     'generate_quiz',
     {
       title: 'Generate Quiz',
-      description: 'Create an adaptive quiz for an existing lesson',
+      description:
+        'Create an adaptive quiz. Provide an existing lesson id or a natural language prompt—the tool will handle the rest.',
       inputSchema: {
-        userId: z.string().min(1).describe('Supabase user id'),
-        lessonId: z.string().min(1).describe('Lesson id to build the quiz from'),
-        difficulty: z.enum(['beginner', 'intermediate', 'advanced']).describe('Target quiz difficulty'),
-        numQuestions: z.number().int().min(1).max(20).optional().describe('Number of quiz questions (default 5)'),
+        userId: z.string().min(1).optional().describe('Supabase user id (optional, defaults to configured demo user)'),
+        lessonId: z.string().min(1).optional().describe('Lesson id to build the quiz from'),
+        subject: z.string().min(1).optional().describe('Optional subject hint when lessonId is omitted'),
+        topic: z.string().min(1).optional().describe('Optional topic hint when lessonId is omitted'),
+        difficulty: z
+          .enum(['beginner', 'intermediate', 'advanced'])
+          .optional()
+          .describe('Target quiz difficulty'),
+        numQuestions: z
+          .number()
+          .int()
+          .min(1)
+          .max(20)
+          .optional()
+          .describe('Number of quiz questions (default 5)'),
+        prompt: z
+          .string()
+          .optional()
+          .describe('Natural language request to infer lesson and quiz details'),
+        persona: z.enum(['friendly', 'strict', 'fun', 'scholar']).optional().describe('Tutor persona override'),
         model: z.string().optional().describe('Gemini model override for this request'),
       },
       outputSchema: {
@@ -598,11 +775,52 @@ function registerTools(server: McpServer, backend: LearningCoachBackend) {
       },
     },
     async (args): Promise<ToolResult> => {
+      const userId = await backend.resolveUserId(args.userId);
+      let lessonId = (args.lessonId as string | undefined)?.trim();
+      let difficulty = args.difficulty as Difficulty | undefined;
+      let numQuestions = args.numQuestions as number | undefined;
+      let inferredDetails: InferredLessonDetails | null = null;
+
+      if (!lessonId) {
+        inferredDetails = await backend.inferLessonDetailsFromPrompt(
+          args.prompt ?? (args.topic as string | undefined) ?? (args.subject as string | undefined) ?? '',
+          {
+            subject: (args.subject as string | undefined)?.trim(),
+            topic: (args.topic as string | undefined)?.trim(),
+            difficulty,
+            numQuestions,
+          }
+        );
+
+        difficulty = difficulty ?? inferredDetails.difficulty;
+        numQuestions = numQuestions ?? inferredDetails.numQuestions;
+
+        const lessonResult = await backend.generateLesson({
+          userId,
+          subject: inferredDetails.subject,
+          topic: inferredDetails.topic,
+          difficulty: inferredDetails.difficulty,
+          duration: inferredDetails.duration,
+          persona: args.persona as Persona | undefined,
+          model: args.model,
+        });
+
+        lessonId = lessonResult.lesson.id;
+      }
+
+      if (!lessonId) {
+        throw new Error('Unable to determine a lesson to build the quiz from.');
+      }
+
+      difficulty = difficulty ?? 'beginner';
+      numQuestions = numQuestions ?? inferredDetails?.numQuestions ?? DEFAULT_NUM_QUESTIONS;
+
       const result = await backend.generateQuiz({
-        userId: args.userId,
-        lessonId: args.lessonId,
-        difficulty: args.difficulty as Difficulty,
-        numQuestions: args.numQuestions,
+        userId,
+        lessonId,
+        difficulty,
+        numQuestions,
+        persona: args.persona as Persona | undefined,
         model: args.model,
       });
 
