@@ -1,6 +1,19 @@
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+const importMetaEnv = typeof import.meta !== 'undefined' && (import.meta as any)?.env
+  ? (import.meta as any).env
+  : undefined;
+
+const getEnv = (key: string) => {
+  if (importMetaEnv && key in importMetaEnv) {
+    return importMetaEnv[key] as string | undefined;
+  }
+  return process.env[key];
+};
+
+const apiKey =
+  getEnv('VITE_GEMINI_API_KEY') ??
+  getEnv('GEMINI_API_KEY');
 
 if (!apiKey) {
   throw new Error('Missing VITE_GEMINI_API_KEY environment variable');
@@ -8,10 +21,13 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
-// Allow overriding the model via env; default to gemini-2.0-flash-exp for better performance
-const DEFAULT_MODEL = (import.meta.env.VITE_GEMINI_MODEL as string) || 'gemini-2.0-flash-exp';
+// Allow overriding the model via env; default to gemini-2.0-flash-exp
+const DEFAULT_MODEL =
+  getEnv('VITE_GEMINI_MODEL') ??
+  getEnv('GEMINI_MODEL') ??
+  'gemini-2.0-flash-exp';
 
-// Get the Gemini model (defaults to fast 2.0 flash exp)
+// Get the Gemini model (defaults to fast 2.0 flash)
 export const getGeminiModel = (modelName: string = DEFAULT_MODEL): GenerativeModel => {
   return genAI.getGenerativeModel({ model: modelName });
 };

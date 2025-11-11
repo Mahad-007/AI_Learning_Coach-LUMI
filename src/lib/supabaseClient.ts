@@ -1,19 +1,39 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const importMetaEnv = typeof import.meta !== 'undefined' && (import.meta as any)?.env
+  ? (import.meta as any).env
+  : undefined;
 
-if (!supabaseUrl || !supabaseAnonKey) {
+const getEnv = (key: string) => {
+  if (importMetaEnv && key in importMetaEnv) {
+    return importMetaEnv[key];
+  }
+  return process.env[key];
+};
+
+const supabaseUrl =
+  getEnv('VITE_SUPABASE_URL') ??
+  getEnv('SUPABASE_URL');
+
+const supabaseServiceRoleKey = getEnv('SUPABASE_SERVICE_ROLE_KEY');
+const supabaseAnonKey =
+  getEnv('VITE_SUPABASE_ANON_KEY') ??
+  getEnv('SUPABASE_ANON_KEY');
+
+const supabaseKey = supabaseServiceRoleKey || supabaseAnonKey;
+
+if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Client-side Supabase client (uses anon key)
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+const isServer = typeof window === 'undefined';
+
+export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
   auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
+    autoRefreshToken: !isServer,
+    persistSession: !isServer,
+    detectSessionInUrl: !isServer,
   },
 });
 
